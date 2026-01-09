@@ -6,23 +6,56 @@ from typing import Any
 import struct
 
 from homeassistant.core import HomeAssistant
-from homeassistant.const import CONF_HOST, CONF_PORT
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_HOST, CONF_PORT, Platform
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import DOMAIN, DEFAULT_SCAN_INTERVAL, CONNECTION_TCP, CONNECTION_RTU, APSTORAGE_REGISTERS, CHARGE_STATUS_ENUM
+from .const import DOMAIN, DEFAULT_SCAN_INTERVAL, CONNECTION_TCP, CONNECTION_RTU, APSTORAGE_REGISTERS, CHARGE_STATUS_ENUM, CONF_CONNECTION_TYPE, CONF_BAUDRATE
 
 _LOGGER = logging.getLogger(__name__)
 
+PLATFORMS = [Platform.SENSOR]
+
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Set up APstorage from YAML config."""
     hass.data.setdefault(DOMAIN, {})
     _LOGGER.debug("APstorage integration initialized")
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry, async_add_devices=None) -> bool:  # pragma: no cover
-    _LOGGER.debug("Setting up APstorage entry: %s", entry.entry_id)
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up APstorage from ConfigEntry."""
+    hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN][entry.entry_id] = {}
+
+    # Create coordinator
+    coordinator = APstorageCoordinator(
+        hass,
+        host=entry.data.get(CONF_HOST),
+        port=entry.data.get(CONF_PORT, 502),
+        unit=entry.data.get("unit", 1),
+        connection_type=entry.data.get(CONF_CONNECTION_TYPE, CONNECTION_TCP),
+        scan_interval=None,  # will use default
+        baudrate=entry.data.get(CONF_BAUDRATE, 9600),
+    )
+
+    if not await coordinator.async_init():
+        _LOGGER.error("Failed to initialize APstorage coordinator")
+        return False
+
+    hass.data[DOMAIN][entry.entry_id]["coordinator"] = coordinator
+
+    # Forward platforms
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload a ConfigEntry."""
+    if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+        hass.data[DOMAIN].pop(entry.entry_id)
+    return unload_ok
 
 
 class APstorageModbusClient:

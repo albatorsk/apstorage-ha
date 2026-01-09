@@ -1,13 +1,13 @@
 {
   "domain": "apstorage",
   "name": "APstorage Modbus",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "documentation": "https://github.com/albatorsk/apstorage-ha",
   "issue_tracker": "https://github.com/albatorsk/apstorage-ha/issues",
   "requirements": ["pymodbus==2.5.3"],
   "dependencies": [],
   "codeowners": ["@albatorsk"],
-  "config_flow": false,
+  "config_flow": true,
   "iot_class": "local_polling",
   "homeassistant": "2023.11.0",
   "zip_safe": false
