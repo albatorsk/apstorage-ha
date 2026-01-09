@@ -11,6 +11,7 @@ from homeassistant.const import CONF_HOST, CONF_PORT, Platform
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import DOMAIN, DEFAULT_SCAN_INTERVAL, CONNECTION_TCP, CONNECTION_RTU, APSTORAGE_REGISTERS, CHARGE_STATUS_ENUM, CONF_CONNECTION_TYPE, CONF_BAUDRATE
+from .config_flow import APstorageConfigFlow
 
 _LOGGER = logging.getLogger(__name__)
 

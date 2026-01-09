@@ -22,32 +22,19 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 
 
 async def async_validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
-    """Validate user input by attempting to connect."""
-    try:
-        from . import APstorageModbusClient
-
-        client = APstorageModbusClient(
-            hass=hass,
-            host=data.get(CONF_HOST),
-            port=data.get(CONF_PORT, 502),
-            unit=data.get(CONF_UNIT, 1),
-            connection_type=data.get(CONF_CONNECTION_TYPE, CONNECTION_TCP),
-            baudrate=data.get(CONF_BAUDRATE, 9600),
-        )
-        connected = await hass.async_add_executor_job(client.async_connect)
-        if not connected:
-            return {"base": "cannot_connect"}
-
-        return {"title": f"APstorage {data.get(CONF_HOST)}"}
-    except Exception as err:  # pylint: disable=broad-except
-        _LOGGER.exception("Error validating input: %s", err)
-        return {"base": "unknown"}
+    """Validate user input (minimal validation)."""
+    # Just ensure host is provided; connection validation happens during setup
+    if not data.get(CONF_HOST):
+        return {"base": "invalid_host"}
+    
+    return {"title": f"APstorage {data.get(CONF_HOST)}"}
 
 
-class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class APstorageConfigFlow(config_entries.ConfigFlow):
     """Handle APstorage config flow."""
 
     VERSION = 1
+    DOMAIN = DOMAIN
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -60,13 +47,13 @@ class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             await self.async_set_unique_id(user_input[CONF_HOST])
             self._abort_if_unique_id_configured()
 
-            # Validate connection
+            # Validate input
             validation_result = await async_validate_input(self.hass, user_input)
             if "base" in validation_result:
                 errors["base"] = validation_result["base"]
             else:
-                # Proceed to next step based on connection type
-                self.data = user_input
+                # Store data and proceed to next step
+                self.flow_config = user_input.copy()
                 return await self.async_step_connection_type()
 
         return self.async_show_form(
@@ -83,7 +70,7 @@ class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input is not None:
-            self.data.update(user_input)
+            self.flow_config.update(user_input)
             if user_input.get(CONF_CONNECTION_TYPE) == CONNECTION_TCP:
                 return await self.async_step_tcp_config()
             else:
@@ -110,7 +97,7 @@ class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input is not None:
-            self.data.update(user_input)
+            self.flow_config.update(user_input)
             return await self.async_step_device_config()
 
         schema = vol.Schema(
@@ -137,7 +124,7 @@ class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input is not None:
-            self.data.update(user_input)
+            self.flow_config.update(user_input)
             return await self.async_step_device_config()
 
         schema = vol.Schema(
@@ -164,11 +151,11 @@ class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input is not None:
-            self.data.update(user_input)
+            self.flow_config.update(user_input)
             # Create the config entry
             return self.async_create_entry(
-                title=self.data.get(CONF_HOST),
-                data=self.data,
+                title=self.flow_config.get(CONF_HOST),
+                data=self.flow_config,
             )
 
         schema = vol.Schema(
