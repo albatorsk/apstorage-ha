@@ -16,6 +16,7 @@ from homeassistant.components.sensor import (
     SensorDeviceClass,
 )
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.device_registry import DeviceInfo
 
 from . import APstorageCoordinator
 from .const import DOMAIN, APSTORAGE_REGISTERS
@@ -98,6 +99,18 @@ class APstorageRegisterSensor(SensorEntity):
     def available(self) -> bool:
         """Return if entity is available."""
         return self._coordinator.last_update_success
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device information."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, self._entry.entry_id)},
+            name="APstorage Battery",
+            manufacturer="APstorage",
+            model="Battery Management System",
+            hw_version="Modbus TCP/RTU",
+            configuration_url=f"http://{self._entry.data.get(CONF_HOST)}",
+        )
 
     @property
     def should_poll(self) -> bool:
