@@ -2,6 +2,8 @@
 
 A comprehensive Home Assistant custom integration for APstorage battery systems, supporting Modbus TCP and RTU communication with real-time monitoring and control.
 
+> **⚠️ 100% AI Generated:** This entire integration, including all code, documentation, and configuration, has been generated entirely by AI (GitHub Copilot). While thoroughly tested, please review and validate all code before production use.
+
 ## Overview
 
 This integration exposes APstorage battery system metrics as Home Assistant sensors, including:
