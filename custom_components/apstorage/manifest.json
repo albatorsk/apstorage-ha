@@ -4,7 +4,7 @@
   "version": "0.2.0",
   "documentation": "https://github.com/albatorsk/apstorage-ha",
   "issue_tracker": "https://github.com/albatorsk/apstorage-ha/issues",
-  "requirements": ["pymodbus==2.5.3"],
+  "requirements": ["pymodbus==3.11.2"],
   "dependencies": [],
   "codeowners": ["@albatorsk"],
   "config_flow": true,

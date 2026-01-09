@@ -20,9 +20,9 @@ Home Assistant custom integration for APstorage battery systems via Modbus TCP/R
    ```
 
 2. Install dependencies (if not auto-installed by Home Assistant):
-   ```bash
-   pip install pymodbus==2.5.3
-   ```
+```bash
+pip install pymodbus==3.11.2
+```
 
 3. Restart Home Assistant
 
