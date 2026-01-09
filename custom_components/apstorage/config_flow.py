@@ -6,10 +6,10 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.const import CONF_HOST, CONF_PORT, CONF_UNIT
+from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.data_entry_flow import FlowResult
 
-from .const import DOMAIN, CONNECTION_TCP, CONNECTION_RTU, CONF_CONNECTION_TYPE, CONF_BAUDRATE
+from .const import DOMAIN, CONNECTION_TCP, CONNECTION_RTU, CONF_CONNECTION_TYPE, CONF_BAUDRATE, CONF_UNIT
 
 _LOGGER = logging.getLogger(__name__)
 
