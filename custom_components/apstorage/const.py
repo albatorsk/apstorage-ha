@@ -41,9 +41,12 @@ APSTORAGE_REGISTERS = {
     40074: ("Max Charge Rate", 1, "uint16", 1, "W", "power"),
     40075: ("Max Discharge Rate", 1, "uint16", 1, "W", "power"),
     40089: ("Controller Heartbeat", 1, "uint16", 1, None, None),
+    40183: ("Set Power", 1, "int16", 1, "W", "power"),
 }
 
-CHARGE_STATUS_ENUM = {
+# Writable registers (address -> max_value for validation)
+APSTORAGE_WRITABLE_REGISTERS = {
+    40183: 10000,  # Set Power: max 10000W
     1: "OFF",
     2: "EMPTY",
     3: "DISCHARGING",

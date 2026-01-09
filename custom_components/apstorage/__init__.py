@@ -14,7 +14,7 @@ from .const import DOMAIN, DEFAULT_SCAN_INTERVAL, CONNECTION_TCP, CONNECTION_RTU
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.SENSOR]
+PLATFORMS = [Platform.SENSOR, Platform.NUMBER]
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -110,6 +110,21 @@ class APstorageModbusClient:
         except Exception as err:  # pragma: no cover
             _LOGGER.exception("Exception reading registers: %s", err)
             return None
+
+    def write_register(self, address: int, value: int) -> bool:
+        """Write a single holding register synchronously."""
+        try:
+            if not self.client:
+                return False
+            result = self.client.write_register(address, value, unit=self.unit)
+            if result.isError():
+                _LOGGER.warning("Modbus error writing register %d: %s", address, result)
+                return False
+            _LOGGER.debug("Successfully wrote value %d to register %d", value, address)
+            return True
+        except Exception as err:  # pragma: no cover
+            _LOGGER.exception("Exception writing register: %s", err)
+            return False
 
     def decode_register(self, registers: list[int], value_type: str, scale: float):
         """Decode register(s) based on type and scale."""
