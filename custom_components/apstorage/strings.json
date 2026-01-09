@@ -1,0 +1,22 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "APstorage Modbus Configuration",
+        "description": "Configure your APstorage device connection",
+        "data": {
+          "host": "Host (IP for TCP, port path for RTU)",
+          "port": "Modbus TCP Port",
+          "unit": "Modbus Unit ID",
+          "connection_type": "Connection Type",
+          "baudrate": "Serial Baud Rate",
+          "scan_interval": "Scan Interval (seconds)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the device",
+      "invalid_host": "Invalid host address"
+    }
+  }
+}

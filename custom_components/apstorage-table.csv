@@ -1,0 +1,129 @@
+Address;Name;Value;Type;Size;Scale Factor;Units;RW;Description
+40002;ID;1;uint16;1;;;R;Model identifier
+40003;Model Length;66;uint16;1;;;R;Model length
+40004;Manufacturer;;string;16;;;R;Well known value registered with SunSpec for compliance
+40020;Model;;string;16;;;R;Manufacturer specific value (32 chars)
+40036;Options;;string;8;;;R;Manufacturer specific value (16 chars)
+40044;Version;;string;8;;;R;Manufacturer specific value (16 chars)
+40052;Serial Number;;string;16;;;R;Manufacturer specific value (32 chars)
+40068;Device Address;;uint16;1;;;RW;Modbus device address
+40070;ID;802;uint16;1;;;R;Model identifier
+40071;Model Length;128;uint16;1;;;R;Model length
+40073;WHRtg;;uint16;1;WHRtg_SF(*0.01);kWh;R;Energy Capacity
+40074;Max Charge Rate;;uint16;1;W_SF(*1);W;R;Maximum rate of energy transfer into the storage device in DC watts.
+40075;Max Discharge Rate;;uint16;1;W_SF(*1);W;R;Maximum rate of energy transfer out of the storage device in DC watts
+40077;SoCMax;1000;uint16;1;SoC_SF(*0.1);%;R;Manufacturer maximum state of charge, expressed as a percentage.
+40078;SoCMin;0;uint16;1;SoC_SF(*0.1);%;R;Manufacturer minimum state of charge, expressed as a percentage.
+40079;SoCRsvMax;;uint16;1;SoC_SF(*0.1);%;RW;Setpoint for maximum reserve for storage as a percentage of the nominal maximum storage.
+40080;SoCRsvMin;;uint16;1;SoC_SF(*0.1);%;RW;Setpoint for minimum reserve for storage as a percentage of the nominal maximum storage.
+40081;SoC;;uint16;1;SoC_SF(*0.1);%;R;State of charge, expressed as a percentage.
+40083;SoH;;uint16;1;SoH_SF(*1);%;R;Percentage of battery life remaining.
+40086;Charge Status;;enum16;1;;;R;Charge status of storage device. Enumeration.
+;OFF;1;;;;;;
+;EMPTY;2;;;;;;
+;DISCHARGING;3;;;;;;
+;CHARGING;4;;;;;;
+;FULL;5;;;;;;
+;HOLDING;6;;;;;;
+;TESTING;7;;;;;;
+40089;Controller Heartbeat;;uint16;1;;;R;Value is incremented every second with periodic resets to zero.
+40096;Battery Event 1 Bitfield;;bitfield32;2;;;R;Alarms and warnings. Bit flags.
+;COMMUNICATION_ERROR;0;;;;;;
+;OVER_TEMP_ALARM;1;;;;;;
+;;2;;;;;;reserve
+;UNDER_TEMP_ALARM;3;;;;;;
+;;4;;;;;;reserve
+;OVER_CHARGE_CURRENT_ALARM;5;;;;;;
+;;6;;;;;;reserve
+;OVER_DISCHARGE_CURRENT_ALARM;7;;;;;;
+;;8;;;;;;reserve
+;OVER_VOLT_ALARM;9;;;;;;
+;;10;;;;;;reserve
+;UNDER_VOLT_ALARM;11;;;;;;
+;;12;;;;;;reserve
+;;13;;;;;;reserve
+;;14;;;;;;reserve
+;;15;;;;;;reserve
+;;16;;;;;;reserve
+;;17;;;;;;reserve
+;;18;;;;;;reserve
+;;19;;;;;;reserve
+;;20;;;;;;reserve
+;;21;;;;;;reserve
+;GROUND_FAULT;22;;;;;;
+;;23;;;;;;reserve
+;;24;;;;;;reserve
+;;25;;;;;;reserve
+;;26;;;;;;reserve
+;;27;;;;;;reserve
+;;28;;;;;;reserve
+;;29;;;;;;reserve
+;;30;;;;;;reserve
+;;31;;;;;;reserve
+40100;EvtVnd1;;bitfield32;2;;;R;PCS alarm
+;PCS_ COMMUNICATION_ERROR;0;;;;;;
+;AC_A_Voltage_stage1_Exceeding_Range;1;;;;;;
+;AC_A_Voltage_stage1_Under_Range;2;;;;;;
+;AC_B_Voltage_stage1_Exceeding_Range;3;;;;;;
+;AC_B_Voltage_stage1_Under_Range;4;;;;;;
+;AC_C_Voltage_stage1_Exceeding_Range;5;;;;;;
+;AC_C_Voltage_stage1_Under_Range;6;;;;;;
+;AC_A_Voltage_stage2_Exceeding_Range;7;;;;;;
+;AC_A_Voltage_stage2_Under_Range;8;;;;;;
+;AC_B_Voltage_stage2_Exceeding_Range;9;;;;;;
+;AC_B_Voltage_stage2_Under_Range;10;;;;;;
+;AC_C_Voltage_stage2_Exceeding_Range;11;;;;;;
+;AC_C_Voltage_stage2_Under_Range;12;;;;;;
+;AC_A_Voltage_stage3_Exceeding_Range;13;;;;;;
+;AC_A_Voltage_stage3_Under_Range;14;;;;;;
+;AC_B_Voltage_stage3_Exceeding_Range;15;;;;;;
+;AC_B_Voltage_stage3_Under_Range;16;;;;;;
+;AC_C_Voltage_stage3_Exceeding_Range;17;;;;;;
+;AC_C_Voltage_stage3_Under_Range;18;;;;;;
+;AC_A_Voltage_stage4_Exceeding_Range;19;;;;;;
+;AC_A_Voltage_stage4_Under_Range;20;;;;;;
+;AC_B_Voltage_stage4_Exceeding_Range;21;;;;;;
+;AC_B_Voltage_stage4_Under_Range;22;;;;;;
+;AC_C_Voltage_stage4_Exceeding_Range;23;;;;;;
+;AC_C_Voltage_stage4_Under_Range;24;;;;;;
+;;25;;;;;;reserve
+;;26;;;;;;reserve
+;;27;;;;;;reserve
+;;28;;;;;;reserve
+;;29;;;;;;reserve
+;;30;;;;;;reserve
+;;31;;;;;;reserve
+40104;DC_Bus_Voltage(Battery);;uint16;1;V_SF(*0.1);V;R;DC Bus Voltage.
+40114;DC_current;;int16;1;A_SF(*0.1);A;R;Total DC current flowing to/from the battery bank.(+:in. -out)
+40117;Battery Power;;int16;1;W_SF(*1);W;R;Total power flowing to/from the battery bank.(+:discharge. -:charge)
+40123;WHRtg_SF;-2;sunssf;1;;;R;Scale factor for energy capacity.
+40124;WChaDisChaMax_SF;0;sunssf;1;;;R;Scale factor for maximum charge and discharge rate.
+40125;DisChaRte_SF;0;sunssf;1;;;R;Scale factor for self discharge rate.
+40126;SoC_SF;-1;sunssf;1;;;R;Scale factor for state of charge values.
+40128;SoH_SF;0;sunssf;1;;;R;Scale factor for state of health.
+40129;V_SF;-1;sunssf;1;;;R;Scale factor for DC bus voltage.
+40131;A_SF;-1;sunssf;1;;;R;Scale factor for DC current.
+40132;AMax_SF;-1;sunssf;1;;;R;Scale factor for instantaneous DC charge/discharge current.
+40133;W_SF;0;sunssf;1;;;R;Scale factor for AC power request.
+40134;Battery_ Voltage;;uint16;1;V_SF(*0.1);V;R;Battery Voltage
+40135;Active_Power_A;;int16;1;W_SF(*1);W;R;A-phase active power (+:discharge. -:charge)
+40136;Active_Power_B;;int16;1;W_SF(*1);W;R;B-phase active power (+:discharge. -:charge)
+40137;Active_Power_C;;int16;1;W_SF(*1);W;R;C-phase active power (+:discharge. -:charge)
+40138;Reactive_Power_A;;uint16;1;W_SF(*1);Var;R;A-phase reactive power
+40139;Reactive_Power_B;;uint16;1;W_SF(*1);Var;R;B-phase reactive power
+40140;Reactive_Power_C;;uint16;1;W_SF(*1);Var;R;C-phase reactive power
+40146;Daily_Charge_Energy;;uint16;1;Energy_SF(*0.01);kWh;R;
+40147;Daily_Disharge_Energy;;uint16;1;Energy_SF(*0.01);kWh;R;
+40148;Charge_Energy;;uint32;2;Energy_SF(*0.01);kWh;R;
+40150;Disharge_Energy;;uint32;2;Energy_SF(*0.01);kWh;R;
+40152;Energy_SF;-2;sunssf;1;;;R;
+40153;Grid_Power_A;;int16;1;W_SF(*1);W;R;A-phase grid side power (+:Grid discharge. -:Grid countercurrent)
+40154;Grid_Power_B;;int16;1;W_SF(*1);W;R;B-phase grid side power (+:Grid discharge. -:Grid countercurrent)
+40155;Grid_Power_C;;int16;1;W_SF(*1);W;R;C-phase grid side power (+:Grid discharge. -:Grid countercurrent)
+40156;Battery_temp;;int16;1;Temp_SF(*0.1);℃;R;
+40157;PCS_temp;;int16;1;Temp_SF(*0.1);℃;R;
+40158;Temp_SF;-1;sunssf;1;;;R;
+40159;Chip1_Version;;string;8;;;R;
+40167;Chip2_Version;;string;8;;;R;
+40175;Chip3_Version;;string;8;;;R;
+40183;Set_Power;;int16;1;W_SF(*1);W;RW;Set the battery charging(-) or discharging(+) power. 0 represents standby.

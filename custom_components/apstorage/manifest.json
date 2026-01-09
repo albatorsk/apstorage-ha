@@ -1,0 +1,13 @@
+{
+  "domain": "apstorage",
+  "name": "APstorage Modbus",
+  "version": "0.1.0",
+  "documentation": "https://per.pe/APstorage-Modbus.pdf",
+  "requirements": ["pymodbus==2.5.3"],
+  "dependencies": [],
+  "codeowners": [],
+  "config_flow": false,
+  "iot_class": "local_polling",
+  "homeassistant": "2023.11.0",
+  "zip_safe": false
+}
