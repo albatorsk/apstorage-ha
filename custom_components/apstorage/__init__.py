@@ -74,7 +74,7 @@ class APstorageModbusClient:
     async def async_connect(self):
         """Connect to the Modbus device."""
         try:
-            from pymodbus.client.sync import ModbusTcpClient, ModbusSerialClient
+            from pymodbus.client import ModbusTcpClient, ModbusSerialClient
 
             if self.connection_type == CONNECTION_TCP:
                 self.client = ModbusTcpClient(self.host, port=self.port)
