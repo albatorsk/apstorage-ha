@@ -10,7 +10,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT, Platform
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import DOMAIN, DEFAULT_SCAN_INTERVAL, CONNECTION_TCP, CONNECTION_RTU, APSTORAGE_REGISTERS, CHARGE_STATUS_ENUM, CONF_CONNECTION_TYPE, CONF_BAUDRATE
+from .const import DOMAIN, DEFAULT_SCAN_INTERVAL, CONNECTION_TCP, CONNECTION_RTU, APSTORAGE_REGISTERS, APSTORAGE_SCALE_REGISTERS, CHARGE_STATUS_ENUM, CONF_CONNECTION_TYPE, CONF_BAUDRATE
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -188,16 +188,35 @@ class APstorageCoordinator(DataUpdateCoordinator):
         """Fetch data from the device."""
         try:
             data = {}
+            # Read all scale factor registers first
+            scale_factors = {}
+            for value_reg, scale_reg in APSTORAGE_SCALE_REGISTERS.items():
+                scale_regs = await self.hass.async_add_executor_job(
+                    self.modbus_client.read_registers, scale_reg, 1
+                )
+                if scale_regs is not None:
+                    # Signed 16-bit for scale factor
+                    sf = scale_regs[0]
+                    if sf > 32767:
+                        sf = sf - 65536
+                    scale_factors[value_reg] = sf
+
             # Read all configured registers
             for address, (name, count, value_type, scale, unit, _) in APSTORAGE_REGISTERS.items():
                 registers = await self.hass.async_add_executor_job(
                     self.modbus_client.read_registers, address, count
                 )
                 if registers is not None:
-                    decoded = self.modbus_client.decode_register(registers, value_type, scale)
+                    # Use dynamic scale factor if available
+                    if address in scale_factors:
+                        sf = scale_factors[address]
+                        decoded = self.modbus_client.decode_register(registers, value_type, 1)
+                        value = decoded * (10 ** sf)
+                    else:
+                        value = self.modbus_client.decode_register(registers, value_type, scale)
                     data[address] = {
                         "name": name,
-                        "value": decoded,
+                        "value": value,
                         "unit": unit,
                         "type": value_type,
                     }

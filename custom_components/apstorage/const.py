@@ -58,3 +58,12 @@ CHARGE_STATUS_ENUM = {
     6: "HOLDING",
     7: "TESTING",
 }
+
+# Map value registers to their scale factor register (if any)
+APSTORAGE_SCALE_REGISTERS = {
+    40081: 40082,  # SoC uses SoC_SF
+    40083: 40084,  # SoH uses SoH_SF
+    40134: 40133,  # Battery Voltage uses V_SF (example, adjust as needed)
+    40114: 40113,  # DC Current uses I_SF (example, adjust as needed)
+    # Add more as needed based on documentation
+}

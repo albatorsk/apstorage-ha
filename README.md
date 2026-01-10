@@ -116,6 +116,39 @@ Example register (Battery Voltage, address 40134):
 - **Unit:** V (volts)
 - **Device Class:** voltage
 
+## Scale Factor Calculation
+
+Some registers require applying a scale factor from a separate register.
+
+**Example:**
+If SoC = 856 and SoC_SF = -1, then:
+
+    SoC = 856 × 10^-1 = 85.6 (%)
+
+**Another example:**
+If SoH = 100 and SoH_SF = 0, then:
+
+    SoH = 100 × 10^0 = 100
+
+## Modbus Query Example
+
+To read SoH (register 0x9C93) from device address 0x01, send:
+
+    0x01 0x03 0x9C 0x93 0x00 0x01 0x5A 0x77
+
+- 0x01: device address
+- 0x03: function code
+- 0x9C 0x93: starting register address
+- 0x00 0x01: number of registers
+- 0x5A 0x77: CRC
+
+A response might be:
+
+    0x01 0x03 0x02 0x00 0x64 0xB9 0xAF
+
+- 0x00 0x64: value of register 0x9C93 (100 decimal)
+- SoH_SF = 0, so SoH = 100 × 10⁰ = 100
+
 ## Troubleshooting
 
 ### Connection Refused
