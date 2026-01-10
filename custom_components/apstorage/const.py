@@ -47,6 +47,9 @@ APSTORAGE_REGISTERS = {
 # Writable registers (address -> max_value for validation)
 APSTORAGE_WRITABLE_REGISTERS = {
     40183: 10000,  # Set Power: max 10000W
+}
+
+CHARGE_STATUS_ENUM = {
     1: "OFF",
     2: "EMPTY",
     3: "DISCHARGING",
