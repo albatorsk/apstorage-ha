@@ -27,7 +27,7 @@ async def async_setup_entry(
     coordinator: APstorageCoordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
 
     entities = []
-    for address, max_value in APSTORAGE_WRITABLE_REGISTERS.items():
+    for address, meta in APSTORAGE_WRITABLE_REGISTERS.items():
         if address in APSTORAGE_REGISTERS:
             name, count, value_type, scale, unit, device_class = APSTORAGE_REGISTERS[address]
             entities.append(
@@ -39,7 +39,8 @@ async def async_setup_entry(
                     unit,
                     device_class,
                     value_type,
-                    max_value,
+                    scale,
+                    meta,
                 )
             )
 
@@ -58,7 +59,8 @@ class APstorageWritableNumber(NumberEntity):
         unit_of_measurement: str | None,
         device_class: str | None,
         value_type: str,
-        max_value: int,
+        scale: float,
+        meta: dict[str, Any],
     ):
         self._coordinator = coordinator
         self._entry = entry
@@ -67,8 +69,11 @@ class APstorageWritableNumber(NumberEntity):
         self._unit_of_measurement = unit_of_measurement
         self._device_class = device_class
         self._value_type = value_type
-        self._max_value = max_value
-        self._min_value = -max_value  # Allow negative for discharge
+        self._scale = scale
+        self._min_value = float(meta.get("min", 0))
+        self._max_value = float(meta.get("max", 100))
+        self._step = float(meta.get("step", 1))
+        self._mode = str(meta.get("mode", "box"))
 
     @property
     def name(self) -> str:
@@ -100,17 +105,22 @@ class APstorageWritableNumber(NumberEntity):
     @property
     def native_min_value(self) -> float:
         """Return the minimum value."""
-        return float(self._min_value)
+        return self._min_value
 
     @property
     def native_max_value(self) -> float:
         """Return the maximum value."""
-        return float(self._max_value)
+        return self._max_value
+
+    @property
+    def native_step(self) -> float:
+        """Return the step size."""
+        return self._step
 
     @property
     def mode(self) -> NumberMode:
         """Return the number mode."""
-        return NumberMode.BOX
+        return NumberMode.SLIDER if self._mode == "slider" else NumberMode.BOX
 
     @property
     def available(self) -> bool:
@@ -137,7 +147,13 @@ class APstorageWritableNumber(NumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Set the register value."""
         try:
-            int_value = int(value)
+            # Convert displayed value back to raw register value.
+            # Example: scale 0.1 means 85.6% is stored as 856.
+            raw_value = value
+            if self._scale not in (0, 1):
+                raw_value = value / self._scale
+
+            int_value = int(round(raw_value))
             success = await self._coordinator.hass.async_add_executor_job(
                 self._coordinator.modbus_client.write_register, self._address, int_value
             )

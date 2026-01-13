@@ -19,6 +19,8 @@ APSTORAGE_REGISTERS = {
     40134: ("Battery Voltage", 1, "uint16", 0.1, "V", "voltage"),
     40114: ("DC Current", 1, "int16", 0.1, "A", "current"),
     40117: ("Battery Power", 1, "int16", 1, "W", "power"),
+    40079: ("SoC Reserve Max (SoCRsvMax)", 1, "uint16", 0.1, "%", None),
+    40080: ("SoC Reserve Min (SoCRsvMin)", 1, "uint16", 0.1, "%", None),
     40081: ("State of Charge (SoC)", 1, "uint16", 0.1, "%", "battery"),
     40083: ("State of Health (SoH)", 1, "uint16", 1, "%", None),
     40156: ("Battery Temperature", 1, "int16", 0.1, "°C", "temperature"),
@@ -44,9 +46,11 @@ APSTORAGE_REGISTERS = {
     40183: ("Set Power", 1, "int16", 1, "W", "power"),
 }
 
-# Writable registers (address -> max_value for validation)
+# Writable registers (address -> UI metadata)
 APSTORAGE_WRITABLE_REGISTERS = {
-    40183: 10000,  # Set Power: max 10000W
+    40183: {"min": -10000, "max": 10000, "step": 1, "mode": "box"},
+    40079: {"min": 0, "max": 100, "step": 0.1, "mode": "slider"},
+    40080: {"min": 0, "max": 100, "step": 0.1, "mode": "slider"},
 }
 
 CHARGE_STATUS_ENUM = {

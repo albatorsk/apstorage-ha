@@ -1,7 +1,7 @@
 {
   "domain": "apstorage",
   "name": "APstorage Modbus",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "documentation": "https://github.com/albatorsk/apstorage-ha",
   "issue_tracker": "https://github.com/albatorsk/apstorage-ha/issues",  "icon": "icon.png",  "requirements": ["pymodbus==3.11.2"],
   "dependencies": [],
