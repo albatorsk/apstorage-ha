@@ -14,7 +14,7 @@ from .const import DOMAIN, DEFAULT_SCAN_INTERVAL, CONNECTION_TCP, CONNECTION_RTU
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.SENSOR, Platform.NUMBER]
+PLATFORMS = [Platform.SENSOR, Platform.NUMBER, Platform.BINARY_SENSOR]
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -141,9 +141,28 @@ class APstorageModbusClient:
             elif value_type == "uint32":
                 # combine two 16-bit registers big-endian
                 val = (registers[0] << 16) | registers[1]
+            elif value_type == "bitfield32":
+                # combine two 16-bit registers big-endian for bitfield
+                val = (registers[0] << 16) | registers[1]
+                return val  # Return raw bitfield value
             elif value_type == "enum16":
                 val = CHARGE_STATUS_ENUM.get(registers[0], f"UNKNOWN({registers[0]})")
                 return val
+            elif value_type == "string":
+                # Decode string from registers (2 bytes per register, ASCII)
+                chars = []
+                for reg in registers:
+                    # Each register contains 2 bytes (big-endian)
+                    chars.append(chr((reg >> 8) & 0xFF))
+                    chars.append(chr(reg & 0xFF))
+                # Strip null bytes and whitespace
+                return ''.join(chars).replace('\x00', '').strip()
+            elif value_type == "sunssf":
+                # SunSpec scale factor (signed 16-bit)
+                val = registers[0]
+                if val > 32767:
+                    val = val - 65536
+                return val  # Return raw scale factor
             else:
                 return None
 
