@@ -20,8 +20,7 @@ class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
     
     @staticmethod
-    @config_entries.callback
-    def async_get_options_flow(config_entry):
+    def async_get_options_flow(config_entry: config_entries.ConfigEntry):
         """Get the options flow for this handler."""
         return APstorageOptionsFlowHandler(config_entry)
     
@@ -106,11 +105,13 @@ APstorageConfigFlow.DOMAIN = DOMAIN
 class APstorageOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle APstorage options."""
 
-    def __init__(self, config_entry):
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
         self.config_entry = config_entry
 
-    async def async_step_init(self, user_input=None):
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
         """Manage options."""
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
