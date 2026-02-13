@@ -1,6 +1,8 @@
 # APstorage Modbus Custom Integration
 
-Home Assistant custom integration for APstorage battery systems via Modbus TCP/RTU.
+Home Assistant custom integration for **APstorage ELS-11.4 and ELT-12** battery systems via Modbus TCP/RTU.
+
+> **Note:** This integration is designed specifically for APstorage ELS-11.4 and ELT-12 models. Other APstorage models may have different register mappings and may not be compatible.
 
 ## Features
 
@@ -63,7 +65,7 @@ apstorage:
 
 ## Exposed Sensors
 
-The integration automatically creates sensors for the following APstorage registers:
+The integration automatically creates 70+ sensors for the following APstorage ELS-11.4/ELT-12 registers:
 
 | Sensor | Unit | Device Class |
 |--------|------|--------------|
@@ -86,6 +88,11 @@ The integration automatically creates sensors for the following APstorage regist
 | Max Charge Rate | W | power |
 | Max Discharge Rate | W | power |
 | Controller Heartbeat | - | - |
+| Device Information | - | - |
+| Battery Alarms (33 binary sensors) | - | problem |
+| Firmware Versions | - | - |
+
+**Note:** v0.6.0+ includes all registers from the APstorage specification including device info, alarms, and diagnostics.
 
 ## Troubleshooting
 
@@ -101,7 +108,7 @@ The integration automatically creates sensors for the following APstorage regist
 
 ### No Sensor Data
 - Check Home Assistant logs: `<config>/home-assistant.log`
-- Verify register addresses match APstorage documentation: https://per.pe/APstorage-Modbus.pdf
+- Verify register addresses match APstorage ELS-11.4/ELT-12 documentation
 - Ensure device responds to Modbus queries (use external Modbus client to test)
 
 ## Advanced
@@ -121,6 +128,6 @@ Register types: `uint16`, `int16`, `uint32`, `enum16`
 
 ## References
 
-- APstorage Modbus Documentation: https://per.pe/APstorage-Modbus.pdf
+- APstorage ELS-11.4/ELT-12 Modbus Documentation
 - Home Assistant Sensor Component: https://www.home-assistant.io/integrations/sensor/
 - pymodbus Documentation: https://pymodbus.readthedocs.io/

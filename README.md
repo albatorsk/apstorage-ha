@@ -1,12 +1,14 @@
 # APstorage Home Assistant Integration
 
-A comprehensive Home Assistant custom integration for APstorage battery systems, supporting Modbus TCP and RTU communication with real-time monitoring and control.
+A comprehensive Home Assistant custom integration for **APstorage ELS-11.4 and ELT-12** battery systems, supporting Modbus TCP and RTU communication with real-time monitoring and control.
+
+> **⚠️ COMPATIBILITY:** This integration is designed specifically for **APstorage ELS-11.4** and **ELT-12** models. Other APstorage models may have different register mappings and may not work correctly with this integration.
 
 > **⚠️ 100% AI Generated - NOT TESTED - MAY NOT WORK:** This entire integration, including all code, documentation, and configuration, has been generated entirely by AI (GitHub Copilot). **This integration has NOT been tested in a real Home Assistant environment or with actual APstorage devices. It may not work at all.** Use at your own risk and thoroughly test before any production use. Please review all code and validate functionality with your specific hardware.
 
 ## Overview
 
-This integration exposes APstorage battery system metrics as Home Assistant sensors, including:
+This integration exposes APstorage ELS-11.4 and ELT-12 battery system metrics as Home Assistant sensors, including:
 - Battery state (voltage, current, power, SoC, SoH)
 - Temperatures (battery and PCS)
 - Energy tracking (daily and cumulative)
@@ -51,12 +53,15 @@ All APstorage sensors will be created automatically under `sensor.battery_voltag
 
 ## Features
 
+✅ **Compatible Models** – APstorage ELS-11.4 and ELT-12  
 ✅ **Modbus TCP/RTU Support** – flexible connection types  
-✅ **27 Pre-mapped Sensors** – voltage, current, power, temperatures, energy, etc.  
+✅ **70+ Sensors** – voltage, current, power, temperatures, energy, alarms, etc.  
+✅ **Binary Sensors** – individual alarm monitoring (33 alarm bits)  
 ✅ **Real-time Updates** – configurable polling interval (default 30s)  
 ✅ **Signed/Unsigned Registers** – automatic 16/32-bit decoding  
 ✅ **Scale Factors** – voltage/current/power properly scaled  
 ✅ **Status Enumerations** – readable charge status values  
+✅ **Device Info** – automatic manufacturer, model, serial number detection  
 
 ## Supported Sensors
 
@@ -107,7 +112,7 @@ The integration uses **async-safe Modbus polling** with a coordinator pattern:
 
 ## Modbus Register Reference
 
-All registers are from the official [APstorage Modbus documentation](https://per.pe/APstorage-Modbus.pdf).
+All registers are from the official APstorage Modbus documentation for ELS-11.4 and ELT-12 models. Register mappings may differ for other APstorage models.
 
 Example register (Battery Voltage, address 40134):
 - **Address:** 40134 (holding register)
