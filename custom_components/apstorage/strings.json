@@ -5,11 +5,36 @@
         "title": "APstorage Modbus Configuration",
         "description": "Configure your APstorage device connection",
         "data": {
-          "host": "Host (IP for TCP, port path for RTU)",
+          "host": "Host (IP for TCP, port path for RTU)"
+        }
+      },
+      "select_connection": {
+        "title": "Connection Type",
+        "description": "Select the connection type for your APstorage device",
+        "data": {
+          "connection_type": "Connection Type"
+        }
+      },
+      "tcp": {
+        "title": "Modbus TCP Configuration",
+        "description": "Configure Modbus TCP connection parameters",
+        "data": {
           "port": "Modbus TCP Port",
-          "unit": "Modbus Unit ID",
-          "connection_type": "Connection Type",
+          "unit": "Modbus Unit ID"
+        }
+      },
+      "rtu": {
+        "title": "Modbus RTU Configuration",
+        "description": "Configure Modbus RTU serial connection parameters",
+        "data": {
           "baudrate": "Serial Baud Rate",
+          "unit": "Modbus Unit ID"
+        }
+      },
+      "finish": {
+        "title": "Scan Interval",
+        "description": "Configure the polling interval",
+        "data": {
           "scan_interval": "Scan Interval (seconds)"
         }
       }
@@ -17,6 +42,20 @@
     "error": {
       "cannot_connect": "Failed to connect to the device",
       "invalid_host": "Invalid host address"
+    },
+    "abort": {
+      "already_configured": "Device is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "APstorage Options",
+        "description": "Configure APstorage integration options",
+        "data": {
+          "scan_interval": "Scan Interval (seconds)"
+        }
+      }
     }
   }
 }

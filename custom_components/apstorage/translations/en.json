@@ -2,58 +2,58 @@
   "config": {
     "step": {
       "user": {
-        "title": "APstorage Connection",
-        "description": "Enter the host address or serial port for your APstorage device",
+        "title": "APstorage Modbus Configuration",
+        "description": "Configure your APstorage device connection",
         "data": {
-          "host": "Host (IP address for TCP, port path for RTU)"
+          "host": "Host (IP for TCP, port path for RTU)"
         }
       },
-      "connection_type": {
+      "select_connection": {
         "title": "Connection Type",
-        "description": "Select how to connect to your APstorage device",
+        "description": "Select the connection type for your APstorage device",
         "data": {
-          "connection_type": "Connection type"
+          "connection_type": "Connection Type"
         }
       },
-      "tcp_config": {
-        "title": "TCP Configuration",
-        "description": "Configure Modbus TCP connection",
+      "tcp": {
+        "title": "Modbus TCP Configuration",
+        "description": "Configure Modbus TCP connection parameters",
         "data": {
-          "port": "Port",
+          "port": "Modbus TCP Port",
           "unit": "Modbus Unit ID"
         }
       },
-      "rtu_config": {
-        "title": "RTU Configuration",
-        "description": "Configure Modbus RTU (serial) connection",
+      "rtu": {
+        "title": "Modbus RTU Configuration",
+        "description": "Configure Modbus RTU serial connection parameters",
         "data": {
-          "baudrate": "Baud rate",
+          "baudrate": "Serial Baud Rate",
           "unit": "Modbus Unit ID"
         }
       },
-      "device_config": {
-        "title": "Device Configuration",
-        "description": "Configure polling and other device settings",
+      "finish": {
+        "title": "Scan Interval",
+        "description": "Configure the polling interval",
         "data": {
-          "scan_interval": "Scan interval (seconds)"
+          "scan_interval": "Scan Interval (seconds)"
         }
       }
     },
     "error": {
-      "cannot_connect": "Failed to connect to the APstorage device. Check host/port/serial settings.",
-      "unknown": "Unexpected error occurred. Check logs for details."
+      "cannot_connect": "Failed to connect to the device",
+      "invalid_host": "Invalid host address"
     },
     "abort": {
-      "already_configured": "APstorage device is already configured."
+      "already_configured": "Device is already configured"
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "APstorage Options",
-        "description": "Update polling and device settings",
+        "description": "Configure APstorage integration options",
         "data": {
-          "scan_interval": "Scan interval (seconds)"
+          "scan_interval": "Scan Interval (seconds)"
         }
       }
     }

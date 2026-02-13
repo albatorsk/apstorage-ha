@@ -17,11 +17,14 @@ _LOGGER = logging.getLogger(__name__)
 class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle APstorage config flow."""
 
-    VERSION = 1    
+    VERSION = 1
+    
     @staticmethod
+    @config_entries.callback
     def async_get_options_flow(config_entry):
         """Get the options flow for this handler."""
         return APstorageOptionsFlowHandler(config_entry)
+    
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
@@ -112,7 +115,15 @@ class APstorageOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
+        # Get current scan_interval from options or use default
+        current_scan_interval = self.config_entry.options.get("scan_interval", 30)
+        
         schema = vol.Schema(
-            {vol.Optional("scan_interval", default=30): int}
+            {
+                vol.Optional(
+                    "scan_interval",
+                    default=current_scan_interval
+                ): vol.All(vol.Coerce(int), vol.Range(min=5, max=300))
+            }
         )
         return self.async_show_form(step_id="init", data_schema=schema)
