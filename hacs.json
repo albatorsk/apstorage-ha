@@ -1,0 +1,9 @@
+{
+  "name": "APstorage Modbus",
+  "content_in_root": false,
+  "filename": "apstorage-ha",
+  "render_readme": true,
+  "domains": ["sensor", "number", "binary_sensor"],
+  "homeassistant": "2023.11.0",
+  "iot_class": "Local Polling"
+}

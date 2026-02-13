@@ -15,22 +15,28 @@ Home Assistant custom integration for **APstorage ELS-11.4 and ELT-12** battery 
 
 ## Installation
 
-1. Copy the `custom_components/apstorage` folder to your Home Assistant config directory:
-   ```bash
-   mkdir -p /path/to/config/custom_components/apstorage
-   cp -r custom_components/apstorage/* /path/to/config/custom_components/apstorage/
-   ```
+### HACS (Recommended)
 
-2. Install dependencies (if not auto-installed by Home Assistant):
-```bash
-pip install pymodbus==3.11.2
-```
+1. Open HACS in your Home Assistant instance
+2. Go to "Integrations"
+3. Click the three dots menu → "Custom repositories"
+4. Add repository: `https://github.com/albatorsk/apstorage-ha`
+5. Category: "Integration"
+6. Search for "APstorage Modbus" and install
+7. Restart Home Assistant
 
-3. Restart Home Assistant
+Dependencies (pymodbus==3.11.2) will be installed automatically.
 
 ## Configuration
 
-### YAML Configuration (configuration.yaml)
+### UI Configuration (Recommended)
+
+1. Go to **Settings** → **Devices & Services**
+2. Click **"+ Add Integration"**
+3. Search for **"APstorage"**
+4. Follow the setup wizard
+
+### YAML Configuration (Alternative)
 
 #### Modbus TCP (default)
 ```yaml

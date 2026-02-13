@@ -15,41 +15,35 @@ This integration exposes APstorage ELS-11.4 and ELT-12 battery system metrics as
 - 3-phase grid power monitoring
 - Device alarms and heartbeat
 
-## Quick Start
+## Installation
 
-### 1. Install Integration
+### HACS (Recommended)
 
-Copy the `custom_components/apstorage` folder to your Home Assistant config directory:
+1. Open HACS in your Home Assistant instance
+2. Click on "Integrations"
+3. Click the three dots menu in the top right corner
+4. Select "Custom repositories"
+5. Add this repository URL: `https://github.com/albatorsk/apstorage-ha`
+6. Select category: "Integration"
+7. Click "Add"
+8. Find "APstorage Modbus" in the integration list
+9. Click "Download"
+10. Restart Home Assistant
 
-```bash
-mkdir -p ~/.homeassistant/custom_components
-cp -r custom_components/apstorage ~/.homeassistant/custom_components/
-```
+### Configuration
 
-### 2. Configure (configuration.yaml)
+After installation, configure the integration through the Home Assistant UI:
 
-**Modbus TCP:**
-```yaml
-apstorage:
-  host: 192.168.1.50
-  port: 502
-  unit: 1
-  scan_interval: 30
-```
+1. Go to **Settings** → **Devices & Services**
+2. Click **"+ Add Integration"**
+3. Search for **"APstorage"**
+4. Follow the configuration wizard:
+   - Enter the host (IP address for TCP or serial port for RTU)
+   - Select connection type (TCP or RTU)
+   - Configure connection parameters (port/baudrate)
+   - Set polling interval (default: 30 seconds)
 
-**Modbus RTU (Serial):**
-```yaml
-apstorage:
-  host: /dev/ttyUSB0
-  unit: 1
-  connection_type: rtu
-  baudrate: 9600
-  scan_interval: 30
-```
-
-### 3. Restart Home Assistant
-
-All APstorage sensors will be created automatically under `sensor.battery_voltage`, `sensor.state_of_charge`, etc.
+All APstorage sensors will be created automatically and appear under your devices.
 
 ## Features
 
