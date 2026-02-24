@@ -156,9 +156,44 @@ DIAGNOSTIC_REGISTERS = {
 
 # Map value registers to their scale factor register (if any)
 APSTORAGE_SCALE_REGISTERS = {
-    40081: 40082,  # SoC uses SoC_SF
-    40083: 40084,  # SoH uses SoH_SF
-    40134: 40133,  # Battery Voltage uses V_SF (example, adjust as needed)
-    40114: 40113,  # DC Current uses I_SF (example, adjust as needed)
-    # Add more as needed based on documentation
+    # Energy Capacity
+    40073: 40123,  # WHRtg uses WHRtg_SF
+    # Charge/Discharge Rates
+    40074: 40133,  # Max Charge Rate uses W_SF
+    40075: 40133,  # Max Discharge Rate uses W_SF
+    # SoC values
+    40077: 40126,  # SoCMax uses SoC_SF
+    40078: 40126,  # SoCMin uses SoC_SF
+    40079: 40126,  # SoCRsvMax uses SoC_SF
+    40080: 40126,  # SoCRsvMin uses SoC_SF
+    40081: 40126,  # SoC uses SoC_SF
+    # SoH
+    40083: 40128,  # SoH uses SoH_SF
+    # Voltages
+    40104: 40129,  # DC Bus Voltage uses V_SF
+    40134: 40129,  # Battery Voltage uses V_SF
+    # Currents
+    40114: 40131,  # DC Current uses A_SF
+    # Power values
+    40117: 40133,  # Battery Power uses W_SF
+    40135: 40133,  # Active Power Phase A uses W_SF
+    40136: 40133,  # Active Power Phase B uses W_SF
+    40137: 40133,  # Active Power Phase C uses W_SF
+    40138: 40133,  # Reactive Power Phase A uses W_SF
+    40139: 40133,  # Reactive Power Phase B uses W_SF
+    40140: 40133,  # Reactive Power Phase C uses W_SF
+    # Energy tracking
+    40146: 40152,  # Daily Charge Energy uses Energy_SF
+    40147: 40152,  # Daily Discharge Energy uses Energy_SF
+    40148: 40152,  # Charge Energy uses Energy_SF
+    40150: 40152,  # Discharge Energy uses Energy_SF
+    # Grid Power
+    40153: 40133,  # Grid Power Phase A uses W_SF
+    40154: 40133,  # Grid Power Phase B uses W_SF
+    40155: 40133,  # Grid Power Phase C uses W_SF
+    # Temperature
+    40156: 40158,  # Battery Temperature uses Temp_SF
+    40157: 40158,  # PCS Temperature uses Temp_SF
+    # Control
+    40183: 40133,  # Set Power uses W_SF
 }
