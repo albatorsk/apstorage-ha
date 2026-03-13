@@ -51,6 +51,15 @@ APSTORAGE_REGISTERS = {
     40104: ("DC Bus Voltage", 1, "uint16", 0.1, "V", "voltage"),
     40114: ("DC Current", 1, "int16", 0.1, "A", "current"),
     40117: ("Battery Power", 1, "int16", 1, "W", "power"),
+    40123: ("WHRtg Scale Factor", 1, "sunssf", 1, None, None),
+    40124: ("Max Charge/Discharge Scale Factor", 1, "sunssf", 1, None, None),
+    40125: ("Discharge Rate Scale Factor", 1, "sunssf", 1, None, None),
+    40126: ("SoC Scale Factor", 1, "sunssf", 1, None, None),
+    40128: ("SoH Scale Factor", 1, "sunssf", 1, None, None),
+    40129: ("Voltage Scale Factor", 1, "sunssf", 1, None, None),
+    40131: ("Current Scale Factor", 1, "sunssf", 1, None, None),
+    40132: ("Max Current Scale Factor", 1, "sunssf", 1, None, None),
+    40133: ("Power Scale Factor", 1, "sunssf", 1, None, None),
     40134: ("Battery Voltage", 1, "uint16", 0.1, "V", "voltage"),
     
     # AC Power - Active
@@ -68,6 +77,7 @@ APSTORAGE_REGISTERS = {
     40147: ("Daily Discharge Energy", 1, "uint16", 0.01, "kWh", "energy"),
     40148: ("Charge Energy", 2, "uint32", 0.01, "kWh", "energy"),
     40150: ("Discharge Energy", 2, "uint32", 0.01, "kWh", "energy"),
+    40152: ("Energy Scale Factor", 1, "sunssf", 1, None, None),
     
     # Grid Power
     40153: ("Grid Power Phase A", 1, "int16", 1, "W", "power"),
@@ -77,6 +87,7 @@ APSTORAGE_REGISTERS = {
     # Temperature
     40156: ("Battery Temperature", 1, "int16", 0.1, "°C", "temperature"),
     40157: ("PCS Temperature", 1, "int16", 0.1, "°C", "temperature"),
+    40158: ("Temperature Scale Factor", 1, "sunssf", 1, None, None),
     
     # Firmware Versions
     40159: ("Chip1 Version", 8, "string", 1, None, None),
@@ -151,6 +162,7 @@ DIAGNOSTIC_REGISTERS = {
     40002, 40003, 40068, 40070, 40071,  # Model IDs and addresses
     40089,  # Heartbeat
     40096, 40100,  # Alarm bitfields
+    40123, 40124, 40125, 40126, 40128, 40129, 40131, 40132, 40133, 40152, 40158,  # Scale factors
     40159, 40167, 40175,  # Chip versions
 }
 
@@ -159,8 +171,8 @@ APSTORAGE_SCALE_REGISTERS = {
     # Energy Capacity
     40073: 40123,  # WHRtg uses WHRtg_SF
     # Charge/Discharge Rates
-    40074: 40133,  # Max Charge Rate uses W_SF
-    40075: 40133,  # Max Discharge Rate uses W_SF
+    40074: 40124,  # Max Charge Rate uses WChaDisChaMax_SF
+    40075: 40124,  # Max Discharge Rate uses WChaDisChaMax_SF
     # SoC values
     40077: 40126,  # SoCMax uses SoC_SF
     40078: 40126,  # SoCMin uses SoC_SF
