@@ -2,9 +2,9 @@
 
 A comprehensive Home Assistant custom integration for **APstorage ELS-11.4 and ELT-12** battery systems, supporting Modbus TCP and RTU communication with real-time monitoring and control.
 
-> **⚠️ COMPATIBILITY:** This integration is designed specifically for **APstorage ELS-11.4** and **ELT-12** models. Other APstorage models may have different register mappings and may not work correctly with this integration.
+> **⚠️ COMPATIBILITY:** This integration is intended for **APstorage ELT-12** and may also work with **ELS-11.4**. Other APstorage models may have different register mappings and may not work correctly with this integration.
 
-> **⚠️ 100% AI Generated - NOT TESTED - MAY NOT WORK:** This entire integration, including all code, documentation, and configuration, has been generated entirely by AI (GitHub Copilot). **This integration has NOT been tested in a real Home Assistant environment or with actual APstorage devices. It may not work at all.** Use at your own risk and thoroughly test before any production use. Please review all code and validate functionality with your specific hardware.
+> **⚠️ TEST STATUS:** This integration has been tested with **Modbus TCP** on an **APstorage ELT-12** in a real Home Assistant environment. **ELS-11.4 has not been validated yet**, although it is expected to use the same register map. Most entities appear to report sensible values, but some registers and entity mappings may still need validation against specific installations.
 
 ## Overview
 
