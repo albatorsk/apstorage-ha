@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-import struct
+from datetime import timedelta
 
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
@@ -29,6 +29,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {}
 
+    scan_interval_seconds = entry.options.get(
+        "scan_interval", entry.data.get("scan_interval", DEFAULT_SCAN_INTERVAL.total_seconds())
+    )
+
     # Create coordinator
     coordinator = APstorageCoordinator(
         hass,
@@ -36,7 +40,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         port=entry.data.get(CONF_PORT, 502),
         unit=entry.data.get("unit", 1),
         connection_type=entry.data.get(CONF_CONNECTION_TYPE, CONNECTION_TCP),
-        scan_interval=None,  # will use default
+        scan_interval=timedelta(seconds=scan_interval_seconds),
         baudrate=entry.data.get(CONF_BAUDRATE, 9600),
     )
 
@@ -101,14 +105,42 @@ class APstorageModbusClient:
         """Read holding registers synchronously."""
         try:
             if not self.client:
+                _LOGGER.debug(
+                    "Skipping Modbus read for %s:%s address=%d count=%d device_id=%d because client is not connected",
+                    self.host,
+                    self.port,
+                    address,
+                    count,
+                    self.unit,
+                )
                 return None
-            rr = self.client.read_holding_registers(address, count, unit=self.unit)
+            rr = self.client.read_holding_registers(
+                address=address,
+                count=count,
+                device_id=self.unit,
+            )
             if rr.isError():
-                _LOGGER.warning("Modbus error reading registers %d+%d: %s", address, count, rr)
+                _LOGGER.warning(
+                    "Modbus read failed for %s:%s address=%d count=%d device_id=%d: %s",
+                    self.host,
+                    self.port,
+                    address,
+                    count,
+                    self.unit,
+                    rr,
+                )
                 return None
             return rr.registers
         except Exception as err:  # pragma: no cover
-            _LOGGER.exception("Exception reading registers: %s", err)
+            _LOGGER.exception(
+                "Exception reading Modbus registers for %s:%s address=%d count=%d device_id=%d: %s",
+                self.host,
+                self.port,
+                address,
+                count,
+                self.unit,
+                err,
+            )
             return None
 
     def write_register(self, address: int, value: int) -> bool:
@@ -116,7 +148,11 @@ class APstorageModbusClient:
         try:
             if not self.client:
                 return False
-            result = self.client.write_register(address, value, unit=self.unit)
+            result = self.client.write_register(
+                address=address,
+                value=value,
+                device_id=self.unit,
+            )
             if result.isError():
                 _LOGGER.warning("Modbus error writing register %d: %s", address, result)
                 return False
@@ -219,6 +255,12 @@ class APstorageCoordinator(DataUpdateCoordinator):
                     if sf > 32767:
                         sf = sf - 65536
                     scale_factors[value_reg] = sf
+                else:
+                    _LOGGER.debug(
+                        "Scale factor register %d could not be read for value register %d",
+                        scale_reg,
+                        value_reg,
+                    )
 
             # Read all configured registers
             for address, (name, count, value_type, scale, unit, _) in APSTORAGE_REGISTERS.items():
@@ -239,6 +281,14 @@ class APstorageCoordinator(DataUpdateCoordinator):
                         "unit": unit,
                         "type": value_type,
                     }
+                else:
+                    _LOGGER.debug("Register read returned no data for %s (%d)", name, address)
+
+            if not data:
+                raise UpdateFailed(
+                    "No APstorage registers could be read; enable debug logging for custom_components.apstorage to inspect Modbus failures"
+                )
+
             return data
         except Exception as err:  # pragma: no cover
             raise UpdateFailed(err) from err
