@@ -41,7 +41,7 @@ After installation, configure the integration through the Home Assistant UI:
    - Enter the host (IP address for TCP or serial port for RTU)
    - Select connection type (TCP or RTU)
    - Configure connection parameters (port/baudrate)
-   - Set polling interval (default: 30 seconds)
+    - Set polling interval (default: 60 seconds)
 
 All APstorage sensors will be created automatically and appear under your devices.
 
@@ -51,7 +51,7 @@ All APstorage sensors will be created automatically and appear under your device
 ✅ **Modbus TCP/RTU Support** – flexible connection types  
 ✅ **70+ Sensors** – voltage, current, power, temperatures, energy, alarms, etc.  
 ✅ **Binary Sensors** – individual alarm monitoring (33 alarm bits)  
-✅ **Real-time Updates** – configurable polling interval (default 30s)  
+✅ **Real-time Updates** – configurable polling interval (default 60s)  
 ✅ **Signed/Unsigned Registers** – automatic 16/32-bit decoding  
 ✅ **Scale Factors** – voltage/current/power properly scaled  
 ✅ **Status Enumerations** – readable charge status values  
@@ -85,7 +85,7 @@ See [full sensor list](custom_components/apstorage/README.md#exposed-sensors) in
 | `unit` | int | 1 | Modbus unit ID |
 | `connection_type` | string | tcp | `tcp` or `rtu` |
 | `baudrate` | int | 9600 | Serial baud rate (RTU only) |
-| `scan_interval` | int | 30 | Polling interval in seconds |
+| `scan_interval` | int | 60 | Polling interval in seconds |
 
 ## Architecture
 

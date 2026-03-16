@@ -2,7 +2,7 @@
 from datetime import timedelta
 
 DOMAIN = "apstorage"
-DEFAULT_SCAN_INTERVAL = timedelta(seconds=30)
+DEFAULT_SCAN_INTERVAL = timedelta(seconds=60)
 
 CONF_UNIT = "unit"
 CONF_REGISTERS = "registers"

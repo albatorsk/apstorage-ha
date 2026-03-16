@@ -9,7 +9,15 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_HOST, CONF_PORT
 from homeassistant.data_entry_flow import FlowResult
 
-from .const import DOMAIN, CONNECTION_TCP, CONNECTION_RTU, CONF_CONNECTION_TYPE, CONF_BAUDRATE, CONF_UNIT
+from .const import (
+    DOMAIN,
+    CONNECTION_TCP,
+    CONNECTION_RTU,
+    CONF_CONNECTION_TYPE,
+    CONF_BAUDRATE,
+    CONF_UNIT,
+    DEFAULT_SCAN_INTERVAL,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -94,7 +102,13 @@ class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self.data.update(user_input)
             return self.async_create_entry(title=self.data[CONF_HOST], data=self.data)
 
-        schema = vol.Schema({vol.Optional("scan_interval", default=30): int})
+        schema = vol.Schema(
+            {
+                vol.Optional(
+                    "scan_interval", default=int(DEFAULT_SCAN_INTERVAL.total_seconds())
+                ): int
+            }
+        )
         return self.async_show_form(step_id="finish", data_schema=schema)
 
 
@@ -117,7 +131,9 @@ class APstorageOptionsFlowHandler(config_entries.OptionsFlow):
             return self.async_create_entry(title="", data=user_input)
 
         # Get current scan_interval from options or use default
-        current_scan_interval = self.config_entry.options.get("scan_interval", 30)
+        current_scan_interval = self.config_entry.options.get(
+            "scan_interval", int(DEFAULT_SCAN_INTERVAL.total_seconds())
+        )
         
         schema = vol.Schema(
             {

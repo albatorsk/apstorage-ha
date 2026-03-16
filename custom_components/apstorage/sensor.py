@@ -20,7 +20,14 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import EntityCategory
 
 from . import APstorageCoordinator
-from .const import DOMAIN, APSTORAGE_REGISTERS, BATTERY_ALARM_BITS, PCS_ALARM_BITS, DIAGNOSTIC_REGISTERS
+from .const import (
+    DOMAIN,
+    APSTORAGE_REGISTERS,
+    APSTORAGE_SCALE_REGISTERS,
+    BATTERY_ALARM_BITS,
+    PCS_ALARM_BITS,
+    DIAGNOSTIC_REGISTERS,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,7 +39,10 @@ async def async_setup_entry(
     coordinator: APstorageCoordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
 
     entities = []
+    scale_factor_registers = set(APSTORAGE_SCALE_REGISTERS.values())
     for address, (name, count, value_type, scale, unit, device_class) in APSTORAGE_REGISTERS.items():
+        if address in scale_factor_registers:
+            continue
         entities.append(
             APstorageRegisterSensor(
                 coordinator,

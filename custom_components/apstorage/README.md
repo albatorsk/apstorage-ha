@@ -11,7 +11,7 @@ Home Assistant custom integration for **APstorage ELS-11.4 and ELT-12** battery 
 - **Energy Tracking**: Daily and cumulative charge/discharge energy
 - **Grid Integration**: 3-phase active/reactive power monitoring
 - **Flexible Connection**: Modbus TCP (default) or RTU (serial) support
-- **Configurable Polling**: Adjustable scan interval (default 30s)
+- **Configurable Polling**: Adjustable scan interval (default 60s)
 
 ## Installation
 
@@ -45,7 +45,7 @@ apstorage:
   port: 502
   unit: 1
   connection_type: tcp
-  scan_interval: 30
+  scan_interval: 60
 ```
 
 #### Modbus RTU (Serial)
@@ -55,7 +55,7 @@ apstorage:
   unit: 1
   connection_type: rtu
   baudrate: 9600
-  scan_interval: 30
+  scan_interval: 60
 ```
 
 ### Parameters
@@ -67,7 +67,7 @@ apstorage:
 | `unit` | Modbus unit ID | 1 | No |
 | `connection_type` | `tcp` or `rtu` | tcp | No |
 | `baudrate` | Serial baud rate | 9600 | No (RTU only) |
-| `scan_interval` | Polling interval in seconds | 30 | No |
+| `scan_interval` | Polling interval in seconds | 60 | No |
 
 ## Exposed Sensors
 
