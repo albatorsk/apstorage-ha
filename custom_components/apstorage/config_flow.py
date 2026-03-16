@@ -26,6 +26,11 @@ class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle APstorage config flow."""
 
     VERSION = 1
+
+    def __init__(self) -> None:
+        """Initialize the config flow."""
+        self.data: dict[str, Any] = {}
+        self._reconfigure_entry: config_entries.ConfigEntry | None = None
     
     @staticmethod
     def async_get_options_flow(config_entry: config_entries.ConfigEntry):
@@ -44,6 +49,31 @@ class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         schema = vol.Schema({vol.Required(CONF_HOST): str})
         return self.async_show_form(step_id="user", data_schema=schema)
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle reconfiguration from the integration card."""
+        if self._reconfigure_entry is None:
+            entry_id = self.context.get("entry_id")
+            self._reconfigure_entry = self.hass.config_entries.async_get_entry(entry_id)
+            if self._reconfigure_entry is None:
+                return self.async_abort(reason="unknown")
+            self.data = dict(self._reconfigure_entry.data)
+
+        if user_input is not None:
+            self.data.update(user_input)
+            return await self.async_step_select_connection()
+
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_HOST,
+                    default=self._reconfigure_entry.data.get(CONF_HOST, ""),
+                ): str
+            }
+        )
+        return self.async_show_form(step_id="reconfigure", data_schema=schema)
 
     async def async_step_select_connection(
         self, user_input: dict[str, Any] | None = None
@@ -100,6 +130,16 @@ class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Configure scan interval."""
         if user_input is not None:
             self.data.update(user_input)
+
+            # Reconfiguration updates the existing config entry instead of creating a new one.
+            if self._reconfigure_entry is not None:
+                self.hass.config_entries.async_update_entry(
+                    self._reconfigure_entry,
+                    data=self.data,
+                )
+                await self.hass.config_entries.async_reload(self._reconfigure_entry.entry_id)
+                return self.async_abort(reason="reconfigure_successful")
+
             return self.async_create_entry(title=self.data[CONF_HOST], data=self.data)
 
         schema = vol.Schema(
