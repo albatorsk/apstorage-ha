@@ -61,7 +61,8 @@
         "title": "APstorage Options",
         "description": "Configure APstorage integration options",
         "data": {
-          "scan_interval": "Scan Interval (seconds)"
+          "scan_interval": "Scan Interval (seconds)",
+          "connection_max_age_seconds": "Connection Recycle Interval (seconds, 0 = disabled)"
         }
       }
     }

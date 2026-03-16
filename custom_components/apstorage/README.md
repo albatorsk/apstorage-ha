@@ -12,6 +12,7 @@ Home Assistant custom integration for **APstorage ELS-11.4 and ELT-12** battery 
 - **Grid Integration**: 3-phase active/reactive power monitoring
 - **Flexible Connection**: Modbus TCP (default) or RTU (serial) support
 - **Configurable Polling**: Adjustable scan interval (default 60s)
+- **Connection Recovery Hardening**: Configurable TCP connection recycle interval
 
 ## Installation
 
@@ -68,6 +69,7 @@ apstorage:
 | `connection_type` | `tcp` or `rtu` | tcp | No |
 | `baudrate` | Serial baud rate | 9600 | No (RTU only) |
 | `scan_interval` | Polling interval in seconds | 60 | No |
+| `connection_max_age_seconds` | TCP connection recycle interval in seconds (0 disables recycling) | 2700 | No (options) |
 
 ## Exposed Sensors
 

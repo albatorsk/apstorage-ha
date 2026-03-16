@@ -3,11 +3,13 @@ from datetime import timedelta
 
 DOMAIN = "apstorage"
 DEFAULT_SCAN_INTERVAL = timedelta(seconds=60)
+DEFAULT_CONNECTION_MAX_AGE_SECONDS = 45 * 60
 
 CONF_UNIT = "unit"
 CONF_REGISTERS = "registers"
 CONF_CONNECTION_TYPE = "connection_type"
 CONF_BAUDRATE = "baudrate"
+CONF_CONNECTION_MAX_AGE_SECONDS = "connection_max_age_seconds"
 
 CONNECTION_TCP = "tcp"
 CONNECTION_RTU = "rtu"

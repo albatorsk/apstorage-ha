@@ -13,8 +13,10 @@ from .const import (
     CONNECTION_TCP,
     CONNECTION_RTU,
     CONF_CONNECTION_TYPE,
+    CONF_CONNECTION_MAX_AGE_SECONDS,
     CONF_BAUDRATE,
     CONF_UNIT,
+    DEFAULT_CONNECTION_MAX_AGE_SECONDS,
     DEFAULT_SCAN_INTERVAL,
 )
 
@@ -173,13 +175,24 @@ class APstorageOptionsFlowHandler(config_entries.OptionsFlow):
         current_scan_interval = self._config_entry.options.get(
             "scan_interval", int(DEFAULT_SCAN_INTERVAL.total_seconds())
         )
+        current_connection_max_age = self._config_entry.options.get(
+            CONF_CONNECTION_MAX_AGE_SECONDS,
+            self._config_entry.data.get(
+                CONF_CONNECTION_MAX_AGE_SECONDS,
+                DEFAULT_CONNECTION_MAX_AGE_SECONDS,
+            ),
+        )
         
         schema = vol.Schema(
             {
                 vol.Optional(
                     "scan_interval",
                     default=current_scan_interval
-                ): vol.All(vol.Coerce(int), vol.Range(min=5, max=300))
+                ): vol.All(vol.Coerce(int), vol.Range(min=5, max=300)),
+                vol.Optional(
+                    CONF_CONNECTION_MAX_AGE_SECONDS,
+                    default=current_connection_max_age,
+                ): vol.All(vol.Coerce(int), vol.Range(min=0, max=86400)),
             }
         )
         return self.async_show_form(step_id="init", data_schema=schema)

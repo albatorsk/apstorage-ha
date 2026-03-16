@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import logging
+import threading
+import time
 from typing import Any
 from datetime import timedelta
 
@@ -10,7 +12,19 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT, Platform
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import DOMAIN, DEFAULT_SCAN_INTERVAL, CONNECTION_TCP, CONNECTION_RTU, APSTORAGE_REGISTERS, APSTORAGE_SCALE_REGISTERS, CHARGE_STATUS_ENUM, CONF_CONNECTION_TYPE, CONF_BAUDRATE
+from .const import (
+    APSTORAGE_REGISTERS,
+    APSTORAGE_SCALE_REGISTERS,
+    CHARGE_STATUS_ENUM,
+    CONF_BAUDRATE,
+    CONF_CONNECTION_MAX_AGE_SECONDS,
+    CONF_CONNECTION_TYPE,
+    CONNECTION_TCP,
+    CONNECTION_RTU,
+    DEFAULT_CONNECTION_MAX_AGE_SECONDS,
+    DEFAULT_SCAN_INTERVAL,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,6 +46,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     scan_interval_seconds = entry.options.get(
         "scan_interval", entry.data.get("scan_interval", DEFAULT_SCAN_INTERVAL.total_seconds())
     )
+    connection_max_age_seconds = entry.options.get(
+        CONF_CONNECTION_MAX_AGE_SECONDS,
+        entry.data.get(CONF_CONNECTION_MAX_AGE_SECONDS, DEFAULT_CONNECTION_MAX_AGE_SECONDS),
+    )
 
     # Create coordinator
     coordinator = APstorageCoordinator(
@@ -42,6 +60,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         connection_type=entry.data.get(CONF_CONNECTION_TYPE, CONNECTION_TCP),
         scan_interval=timedelta(seconds=scan_interval_seconds),
         baudrate=entry.data.get(CONF_BAUDRATE, 9600),
+        connection_max_age_seconds=connection_max_age_seconds,
     )
 
     if not await coordinator.async_init():
@@ -63,7 +82,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a ConfigEntry."""
+    coordinator: APstorageCoordinator | None = hass.data[DOMAIN].get(entry.entry_id, {}).get("coordinator")
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+        if coordinator is not None:
+            await coordinator.async_shutdown()
         hass.data[DOMAIN].pop(entry.entry_id)
     return unload_ok
 
@@ -71,46 +93,135 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 class APstorageModbusClient:
     """Wrapper for pymodbus TCP/RTU client."""
 
-    def __init__(self, hass: HomeAssistant, host: str, port: int, unit: int, 
-                 connection_type: str, baudrate: int = 9600):
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        host: str,
+        port: int,
+        unit: int,
+        connection_type: str,
+        baudrate: int = 9600,
+        connection_max_age_seconds: int = DEFAULT_CONNECTION_MAX_AGE_SECONDS,
+    ):
         self.hass = hass
         self.host = host
         self.port = port
         self.unit = unit
         self.connection_type = connection_type
         self.baudrate = baudrate
+        self.connection_max_age_seconds = max(0, int(connection_max_age_seconds))
         self.client = None
+        self._client_lock = threading.Lock()
+        self._last_connect_monotonic: float | None = None
+
+    def _create_client(self):
+        """Create a new pymodbus client instance."""
+        from pymodbus.client import ModbusTcpClient, ModbusSerialClient
+
+        if self.connection_type == CONNECTION_TCP:
+            return ModbusTcpClient(self.host, port=self.port)
+
+        return ModbusSerialClient(
+            method="rtu",
+            port=self.host,
+            baudrate=self.baudrate,
+            stopbits=1,
+            bytesize=8,
+            parity="N",
+            timeout=3,
+        )
+
+    def _is_client_connected(self) -> bool:
+        """Best-effort check if the underlying client connection is still alive."""
+        if self.client is None:
+            return False
+
+        connected = getattr(self.client, "connected", None)
+        if isinstance(connected, bool):
+            return connected
+
+        is_socket_open = getattr(self.client, "is_socket_open", None)
+        if callable(is_socket_open):
+            try:
+                return bool(is_socket_open())
+            except Exception:
+                return False
+
+        # Fall back to assuming connected when no explicit API is available.
+        return True
+
+    def _sync_disconnect(self) -> None:
+        """Close the current client connection synchronously."""
+        with self._client_lock:
+            if self.client is not None:
+                try:
+                    self.client.close()
+                except Exception as err:  # pragma: no cover
+                    _LOGGER.debug("Error closing Modbus client: %s", err)
+            self.client = None
+            self._last_connect_monotonic = None
+
+    def _sync_connect(self, force_reconnect: bool = False) -> bool:
+        """Connect (or reconnect) to the Modbus device synchronously."""
+        with self._client_lock:
+            if not force_reconnect and self._is_client_connected():
+                return True
+
+            if self.client is not None:
+                try:
+                    self.client.close()
+                except Exception as err:  # pragma: no cover
+                    _LOGGER.debug("Error closing existing Modbus client before reconnect: %s", err)
+
+            self.client = self._create_client()
+            connected = bool(self.client.connect())
+            if not connected:
+                _LOGGER.error("Failed to connect to Modbus device at %s:%s", self.host, self.port)
+                self.client = None
+                self._last_connect_monotonic = None
+                return False
+
+            self._last_connect_monotonic = time.monotonic()
+            _LOGGER.info("Connected to APstorage Modbus device")
+            return True
+
+    def _should_recycle_connection(self) -> bool:
+        """Return True if the connection should be recycled due to age."""
+        if self.connection_type != CONNECTION_TCP:
+            return False
+        if self.connection_max_age_seconds <= 0:
+            return False
+        if self._last_connect_monotonic is None:
+            return False
+        return (time.monotonic() - self._last_connect_monotonic) >= self.connection_max_age_seconds
+
+    def _ensure_connected(self, recycle_if_old: bool = False) -> bool:
+        """Ensure there is an active connection; optionally recycle old connections."""
+        if recycle_if_old and self._should_recycle_connection():
+            _LOGGER.debug(
+                "Recycling APstorage Modbus TCP connection after %.0f seconds",
+                time.monotonic() - self._last_connect_monotonic,
+            )
+            return self._sync_connect(force_reconnect=True)
+
+        return self._sync_connect(force_reconnect=False)
 
     async def async_connect(self):
         """Connect to the Modbus device."""
         try:
-            from pymodbus.client import ModbusTcpClient, ModbusSerialClient
-
-            if self.connection_type == CONNECTION_TCP:
-                self.client = ModbusTcpClient(self.host, port=self.port)
-            else:  # RTU
-                self.client = ModbusSerialClient(
-                    method="rtu",
-                    port=self.host,
-                    baudrate=self.baudrate,
-                    stopbits=1,
-                    bytesize=8,
-                    parity="N",
-                    timeout=3,
-                )
-            if not self.client.connect():
-                _LOGGER.error("Failed to connect to Modbus device at %s:%s", self.host, self.port)
-                return False
-            _LOGGER.info("Connected to APstorage Modbus device")
-            return True
+            return await self.hass.async_add_executor_job(self._sync_connect)
         except Exception as err:  # pragma: no cover
             _LOGGER.exception("Failed to init Modbus client: %s", err)
             return False
 
+    async def async_disconnect(self) -> None:
+        """Disconnect from the Modbus device."""
+        await self.hass.async_add_executor_job(self._sync_disconnect)
+
     def read_registers(self, address: int, count: int) -> list[int] | None:
         """Read holding registers synchronously."""
         try:
-            if not self.client:
+            if not self._ensure_connected(recycle_if_old=True):
                 _LOGGER.debug(
                     "Skipping Modbus read for %s:%s address=%d count=%d device_id=%d because client is not connected",
                     self.host,
@@ -135,6 +246,23 @@ class APstorageModbusClient:
                     self.unit,
                     rr,
                 )
+                if self._sync_connect(force_reconnect=True):
+                    retry = self.client.read_holding_registers(
+                        address=address,
+                        count=count,
+                        device_id=self.unit,
+                    )
+                    if not retry.isError():
+                        return retry.registers
+                    _LOGGER.warning(
+                        "Modbus retry read failed for %s:%s address=%d count=%d device_id=%d: %s",
+                        self.host,
+                        self.port,
+                        address,
+                        count,
+                        self.unit,
+                        retry,
+                    )
                 return None
             return rr.registers
         except Exception as err:  # pragma: no cover
@@ -147,12 +275,23 @@ class APstorageModbusClient:
                 self.unit,
                 err,
             )
+            try:
+                if self._sync_connect(force_reconnect=True):
+                    retry = self.client.read_holding_registers(
+                        address=address,
+                        count=count,
+                        device_id=self.unit,
+                    )
+                    if not retry.isError():
+                        return retry.registers
+            except Exception as retry_err:  # pragma: no cover
+                _LOGGER.debug("Retry read after reconnect failed: %s", retry_err)
             return None
 
     def write_register(self, address: int, value: int) -> bool:
         """Write a single holding register synchronously."""
         try:
-            if not self.client:
+            if not self._ensure_connected(recycle_if_old=True):
                 return False
             result = self.client.write_register(
                 address=address,
@@ -161,11 +300,33 @@ class APstorageModbusClient:
             )
             if result.isError():
                 _LOGGER.warning("Modbus error writing register %d: %s", address, result)
+                if self._sync_connect(force_reconnect=True):
+                    retry = self.client.write_register(
+                        address=address,
+                        value=value,
+                        device_id=self.unit,
+                    )
+                    if not retry.isError():
+                        _LOGGER.debug("Write register %d succeeded after reconnect", address)
+                        return True
+                    _LOGGER.warning("Modbus retry write error on register %d: %s", address, retry)
                 return False
             _LOGGER.debug("Successfully wrote value %d to register %d", value, address)
             return True
         except Exception as err:  # pragma: no cover
             _LOGGER.exception("Exception writing register: %s", err)
+            try:
+                if self._sync_connect(force_reconnect=True):
+                    retry = self.client.write_register(
+                        address=address,
+                        value=value,
+                        device_id=self.unit,
+                    )
+                    if not retry.isError():
+                        _LOGGER.debug("Write register %d succeeded after reconnect", address)
+                        return True
+            except Exception as retry_err:  # pragma: no cover
+                _LOGGER.debug("Retry write after reconnect failed: %s", retry_err)
             return False
 
     def decode_register(self, registers: list[int], value_type: str, scale: float):
@@ -227,8 +388,17 @@ class APstorageCoordinator(DataUpdateCoordinator):
         connection_type: str,
         scan_interval=None,
         baudrate: int = 9600,
+        connection_max_age_seconds: int = DEFAULT_CONNECTION_MAX_AGE_SECONDS,
     ):
-        self.modbus_client = APstorageModbusClient(hass, host, port, unit, connection_type, baudrate)
+        self.modbus_client = APstorageModbusClient(
+            hass,
+            host,
+            port,
+            unit,
+            connection_type,
+            baudrate,
+            connection_max_age_seconds,
+        )
         
         if scan_interval is None:
             scan_interval = DEFAULT_SCAN_INTERVAL
@@ -244,6 +414,10 @@ class APstorageCoordinator(DataUpdateCoordinator):
     async def async_init(self) -> bool:
         """Initialize the coordinator."""
         return await self.modbus_client.async_connect()
+
+    async def async_shutdown(self) -> None:
+        """Shutdown the coordinator and close Modbus resources."""
+        await self.modbus_client.async_disconnect()
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from the device."""

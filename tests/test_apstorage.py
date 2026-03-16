@@ -1,8 +1,9 @@
 """Test APstorage integration register decoding."""
 import sys
+import time
 import types
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 
 def _install_homeassistant_stubs() -> None:
@@ -61,7 +62,10 @@ def _install_homeassistant_stubs() -> None:
 
 _install_homeassistant_stubs()
 
-from custom_components.apstorage import APstorageModbusClient
+from custom_components.apstorage import (
+    APstorageModbusClient,
+    DEFAULT_CONNECTION_MAX_AGE_SECONDS,
+)
 from custom_components.apstorage.entity_naming import (
     async_migrate_entity_id,
     build_prefixed_entity_id,
@@ -148,6 +152,38 @@ class TestAPstorageDecoding(unittest.TestCase):
             value=250,
             device_id=1,
         )
+
+    def test_read_registers_reconnects_and_retries_on_error(self):
+        """Test failed reads trigger reconnect and one retry."""
+        first_response = MagicMock()
+        first_response.isError.return_value = True
+
+        retry_response = MagicMock()
+        retry_response.isError.return_value = False
+        retry_response.registers = [456]
+
+        self.client.client = MagicMock()
+        self.client.client.read_holding_registers.side_effect = [first_response, retry_response]
+        self.client._sync_connect = MagicMock(return_value=True)
+
+        result = self.client.read_registers(40083, 1)
+
+        self.assertEqual(result, [456])
+        self.client._sync_connect.assert_has_calls(
+            [call(force_reconnect=False), call(force_reconnect=True)]
+        )
+
+    def test_ensure_connected_recycles_old_tcp_connections(self):
+        """Test stale TCP sessions are proactively recycled before requests."""
+        self.client._last_connect_monotonic = (
+            time.monotonic() - DEFAULT_CONNECTION_MAX_AGE_SECONDS - 1
+        )
+        self.client._sync_connect = MagicMock(return_value=True)
+
+        result = self.client._ensure_connected(recycle_if_old=True)
+
+        self.assertTrue(result)
+        self.client._sync_connect.assert_called_once_with(force_reconnect=True)
 
     def test_suggested_object_id_uses_serial_prefix(self):
         """Test entity object IDs include the aps serial prefix."""
