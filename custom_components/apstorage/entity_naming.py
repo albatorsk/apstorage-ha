@@ -66,6 +66,10 @@ def async_migrate_entity_id(
     entity_name: str,
 ) -> bool:
     """Rename an entity registry entry to the serial-prefixed entity ID."""
+    # Never strip an existing prefix: if serial is unavailable we have no valid
+    # target ID, so leave whatever is already in the registry untouched.
+    if not get_serial_number(data):
+        return False
     new_entity_id = build_prefixed_entity_id(current_entity_id, data, entity_name)
     if not current_entity_id or not new_entity_id or current_entity_id == new_entity_id:
         return False

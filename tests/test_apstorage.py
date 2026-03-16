@@ -233,6 +233,42 @@ class TestAPstorageDecoding(unittest.TestCase):
             new_entity_id="sensor.aps_serial_42_charge_status",
         )
 
+    def test_async_migrate_entity_id_does_not_strip_prefix_when_serial_missing(self):
+        """Migration must not remove aps_ prefix when coordinator data is absent.
+
+        If coordinator.data is None (e.g. initial refresh failed), calling
+        async_migrate_entity_id would previously rename an already-prefixed
+        entity back to the bare name, stripping the serial prefix.
+        """
+        import custom_components.apstorage.entity_naming as entity_naming
+
+        registry = MagicMock()
+        hass = object()
+
+        original_async_get = entity_naming.er.async_get
+        entity_naming.er.async_get = MagicMock(return_value=registry)
+        try:
+            # No coordinator data at all
+            result_none = async_migrate_entity_id(
+                hass,
+                "sensor.aps_serial_42_charge_status",
+                None,
+                "Charge Status",
+            )
+            # Coordinator data present but serial register missing
+            result_no_serial = async_migrate_entity_id(
+                hass,
+                "sensor.aps_serial_42_charge_status",
+                {},
+                "Charge Status",
+            )
+        finally:
+            entity_naming.er.async_get = original_async_get
+
+        self.assertFalse(result_none, "Should not migrate when data is None")
+        self.assertFalse(result_no_serial, "Should not migrate when serial register is missing")
+        registry.async_update_entity.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()
