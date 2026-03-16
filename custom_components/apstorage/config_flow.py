@@ -160,7 +160,7 @@ class APstorageOptionsFlowHandler(config_entries.OptionsFlow):
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
-        self.config_entry = config_entry
+        self._config_entry = config_entry
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -170,7 +170,7 @@ class APstorageOptionsFlowHandler(config_entries.OptionsFlow):
             return self.async_create_entry(title="", data=user_input)
 
         # Get current scan_interval from options or use default
-        current_scan_interval = self.config_entry.options.get(
+        current_scan_interval = self._config_entry.options.get(
             "scan_interval", int(DEFAULT_SCAN_INTERVAL.total_seconds())
         )
         
