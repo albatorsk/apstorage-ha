@@ -160,12 +160,10 @@ ls -la /dev/ttyUSB0
 ```
 
 ### No Sensors Created
-- Check Home Assistant logs: `sudo journalctl -u homeassistant`
 - Verify Modbus device responds with external client
 - Confirm register addresses match APstorage documentation
 
 ### RTU Serial Issues
-- Linux: `sudo usermod -a -G dialout $USER` (restart required)
 - Match device baud rate (usually 9600)
 - Verify cable and adapter
 

@@ -110,7 +110,6 @@ The integration automatically creates 70+ sensors for the following APstorage EL
 ### Serial (RTU) Connection
 - Verify port exists: `ls -la /dev/ttyUSB*` (Linux/Mac) or check Device Manager (Windows)
 - Correct baud rate must match device (usually 9600)
-- Ensure proper permissions: `sudo usermod -a -G dialout $USER` (Linux)
 
 ### No Sensor Data
 - Check Home Assistant logs: `<config>/home-assistant.log`
