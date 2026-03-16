@@ -7,7 +7,6 @@ from typing import Any
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_HOST, CONF_PORT
-from homeassistant.data_entry_flow import FlowResult
 
 from .const import (
     DOMAIN,
@@ -39,7 +38,7 @@ class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ):
         """Handle the initial step."""
         if user_input is not None:
             await self.async_set_unique_id(user_input[CONF_HOST])
@@ -52,7 +51,7 @@ class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ):
         """Handle reconfiguration from the integration card."""
         if self._reconfigure_entry is None:
             entry_id = self.context.get("entry_id")
@@ -77,7 +76,7 @@ class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_select_connection(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ):
         """Select connection type."""
         if user_input is not None:
             self.data.update(user_input)
@@ -92,7 +91,7 @@ class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_tcp(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ):
         """Configure TCP connection."""
         if user_input is not None:
             self.data.update(user_input)
@@ -108,7 +107,7 @@ class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_rtu(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ):
         """Configure RTU connection."""
         if user_input is not None:
             self.data.update(user_input)
@@ -126,7 +125,7 @@ class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_finish(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ):
         """Configure scan interval."""
         if user_input is not None:
             self.data.update(user_input)
@@ -165,7 +164,7 @@ class APstorageOptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ):
         """Manage options."""
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
