@@ -98,12 +98,10 @@ Address;Name;Value;Type;Size;Scale Factor;Units;RW;Description
 40117;Battery Power;;int16;1;W_SF(*1);W;R;Total power flowing to/from the battery bank.(+:discharge. -:charge)
 40123;WHRtg_SF;-2;sunssf;1;;;R;Scale factor for energy capacity.
 40124;WChaDisChaMax_SF;0;sunssf;1;;;R;Scale factor for maximum charge and discharge rate.
-40125;DisChaRte_SF;0;sunssf;1;;;R;Scale factor for self discharge rate.
 40126;SoC_SF;-1;sunssf;1;;;R;Scale factor for state of charge values.
 40128;SoH_SF;0;sunssf;1;;;R;Scale factor for state of health.
 40129;V_SF;-1;sunssf;1;;;R;Scale factor for DC bus voltage.
 40131;A_SF;-1;sunssf;1;;;R;Scale factor for DC current.
-40132;AMax_SF;-1;sunssf;1;;;R;Scale factor for instantaneous DC charge/discharge current.
 40133;W_SF;0;sunssf;1;;;R;Scale factor for AC power request.
 40134;Battery_ Voltage;;uint16;1;V_SF(*0.1);V;R;Battery Voltage
 40135;Active_Power_A;;int16;1;W_SF(*1);W;R;A-phase active power (+:discharge. -:charge)
