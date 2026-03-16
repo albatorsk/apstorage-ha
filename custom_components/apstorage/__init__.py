@@ -48,6 +48,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.error("Failed to initialize APstorage coordinator")
         return False
 
+    await coordinator.async_refresh()
+    if not coordinator.last_update_success:
+        _LOGGER.warning(
+            "Initial APstorage refresh failed during setup; entities may be created without serial-prefixed IDs until a later refresh succeeds"
+        )
+
     hass.data[DOMAIN][entry.entry_id]["coordinator"] = coordinator
 
     # Forward platforms

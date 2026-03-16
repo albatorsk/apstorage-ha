@@ -15,6 +15,7 @@ def _install_homeassistant_stubs() -> None:
     config_entries = types.ModuleType("homeassistant.config_entries")
     const = types.ModuleType("homeassistant.const")
     helpers = types.ModuleType("homeassistant.helpers")
+    entity_registry = types.ModuleType("homeassistant.helpers.entity_registry")
     update_coordinator = types.ModuleType("homeassistant.helpers.update_coordinator")
 
     class HomeAssistant:  # noqa: D401
@@ -36,11 +37,16 @@ def _install_homeassistant_stubs() -> None:
     class UpdateFailed(Exception):
         """Stub UpdateFailed exception."""
 
+    def async_get(_hass):
+        return None
+
     core.HomeAssistant = HomeAssistant
     config_entries.ConfigEntry = ConfigEntry
     const.CONF_HOST = "host"
     const.CONF_PORT = "port"
     const.Platform = Platform
+    entity_registry.async_get = async_get
+    helpers.entity_registry = entity_registry
     update_coordinator.DataUpdateCoordinator = DataUpdateCoordinator
     update_coordinator.UpdateFailed = UpdateFailed
 
@@ -49,6 +55,7 @@ def _install_homeassistant_stubs() -> None:
     sys.modules["homeassistant.config_entries"] = config_entries
     sys.modules["homeassistant.const"] = const
     sys.modules["homeassistant.helpers"] = helpers
+    sys.modules["homeassistant.helpers.entity_registry"] = entity_registry
     sys.modules["homeassistant.helpers.update_coordinator"] = update_coordinator
 
 
@@ -56,6 +63,7 @@ _install_homeassistant_stubs()
 
 from custom_components.apstorage import APstorageModbusClient
 from custom_components.apstorage.entity_naming import (
+    async_migrate_entity_id,
     build_prefixed_entity_id,
     get_suggested_object_id,
 )
@@ -160,6 +168,34 @@ class TestAPstorageDecoding(unittest.TestCase):
         )
 
         self.assertEqual(result, "sensor.aps_serial_42_charge_status")
+
+    def test_async_migrate_entity_id_updates_registry(self):
+        """Test entity registry entries are renamed to the serial-prefixed ID."""
+        coordinator_data = {40052: {"value": "SERIAL-42"}}
+        hass = object()
+
+        registry = MagicMock()
+        registry.async_get.return_value = object()
+
+        import custom_components.apstorage.entity_naming as entity_naming
+
+        original_async_get = entity_naming.er.async_get
+        entity_naming.er.async_get = MagicMock(return_value=registry)
+        try:
+            result = async_migrate_entity_id(
+                hass,
+                "sensor.charge_status",
+                coordinator_data,
+                "Charge Status",
+            )
+        finally:
+            entity_naming.er.async_get = original_async_get
+
+        self.assertTrue(result)
+        registry.async_update_entity.assert_called_once_with(
+            "sensor.charge_status",
+            new_entity_id="sensor.aps_serial_42_charge_status",
+        )
 
 
 if __name__ == "__main__":
