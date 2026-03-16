@@ -55,6 +55,10 @@ def _install_homeassistant_stubs() -> None:
 _install_homeassistant_stubs()
 
 from custom_components.apstorage import APstorageModbusClient
+from custom_components.apstorage.entity_naming import (
+    build_prefixed_entity_id,
+    get_suggested_object_id,
+)
 
 
 class TestAPstorageDecoding(unittest.TestCase):
@@ -136,6 +140,26 @@ class TestAPstorageDecoding(unittest.TestCase):
             value=250,
             device_id=1,
         )
+
+    def test_suggested_object_id_uses_serial_prefix(self):
+        """Test entity object IDs include the aps serial prefix."""
+        coordinator_data = {40052: {"value": "SERIAL-42"}}
+
+        result = get_suggested_object_id(coordinator_data, "Charge Status")
+
+        self.assertEqual(result, "aps_serial_42_charge_status")
+
+    def test_build_prefixed_entity_id_preserves_domain(self):
+        """Test full entity IDs keep their domain when renamed."""
+        coordinator_data = {40052: {"value": "SERIAL-42"}}
+
+        result = build_prefixed_entity_id(
+            "sensor.charge_status",
+            coordinator_data,
+            "Charge Status",
+        )
+
+        self.assertEqual(result, "sensor.aps_serial_42_charge_status")
 
 
 if __name__ == "__main__":

@@ -16,6 +16,7 @@ from homeassistant.components.sensor import (
     SensorDeviceClass,
 )
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import EntityCategory
 
@@ -28,6 +29,7 @@ from .const import (
     PCS_ALARM_BITS,
     DIAGNOSTIC_REGISTERS,
 )
+from .entity_naming import build_prefixed_entity_id, get_suggested_object_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -88,6 +90,11 @@ class APstorageRegisterSensor(SensorEntity):
     def unique_id(self) -> str:
         """Return a unique ID for this sensor."""
         return f"apstorage_{self._entry.entry_id}_{self._address}"
+
+    @property
+    def suggested_object_id(self) -> str | None:
+        """Return the preferred object ID for this sensor."""
+        return get_suggested_object_id(self._coordinator.data, self._name)
 
     @property
     def unit_of_measurement(self) -> str | None:
@@ -232,6 +239,19 @@ class APstorageRegisterSensor(SensorEntity):
         self.async_on_remove(
             self._coordinator.async_add_listener(self.async_write_ha_state)
         )
+
+        registry = er.async_get(self.hass)
+        registry_entry = registry.async_get(self.entity_id)
+        new_entity_id = build_prefixed_entity_id(
+            self.entity_id,
+            self._coordinator.data,
+            self._name,
+        )
+        if registry_entry and new_entity_id and registry_entry.entity_id != new_entity_id:
+            try:
+                registry.async_update_entity(self.entity_id, new_entity_id=new_entity_id)
+            except ValueError:
+                _LOGGER.warning("Unable to rename entity %s to %s", self.entity_id, new_entity_id)
 
     async def async_update(self) -> None:
         """Update via coordinator."""
