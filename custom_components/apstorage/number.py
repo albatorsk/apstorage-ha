@@ -15,7 +15,12 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.device_registry import DeviceInfo
 
 from . import APstorageCoordinator
-from .const import DOMAIN, APSTORAGE_REGISTERS, APSTORAGE_WRITABLE_REGISTERS
+from .const import (
+    DOMAIN,
+    APSTORAGE_REGISTERS,
+    APSTORAGE_SCALE_REGISTERS,
+    APSTORAGE_WRITABLE_REGISTERS,
+)
 from .entity_naming import async_migrate_entity_id, get_suggested_object_id
 
 _LOGGER = logging.getLogger(__name__)
@@ -191,11 +196,18 @@ class APstorageWritableNumber(NumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Set the register value."""
         try:
+            effective_scale = self._scale
+            scale_reg = APSTORAGE_SCALE_REGISTERS.get(self._address)
+            if scale_reg is not None and self._coordinator.data and scale_reg in self._coordinator.data:
+                sf = self._coordinator.data[scale_reg].get("value")
+                if sf is not None:
+                    effective_scale = 10 ** int(sf)
+
             # Convert displayed value back to raw register value.
             # Example: scale 0.1 means 85.6% is stored as 856.
             raw_value = value
-            if self._scale not in (0, 1):
-                raw_value = value / self._scale
+            if effective_scale not in (0, 1):
+                raw_value = value / effective_scale
 
             int_value = int(round(raw_value))
             success = await self._coordinator.hass.async_add_executor_job(
