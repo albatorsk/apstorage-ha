@@ -92,8 +92,8 @@ class APstorageWritableNumber(NumberEntity):
         return get_suggested_object_id(self._coordinator.data, self._name)
 
     @property
-    def unit_of_measurement(self) -> str | None:
-        """Return the unit of measurement."""
+    def native_unit_of_measurement(self) -> str | None:
+        """Return the native unit of measurement."""
         return self._unit_of_measurement
 
     @property
