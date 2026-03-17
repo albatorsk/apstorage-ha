@@ -95,7 +95,7 @@ See [full sensor list](custom_components/apstorage/README.md#exposed-sensors) in
 | `connection_type` | string | tcp | `tcp` or `rtu` |
 | `baudrate` | int | 9600 | Serial baud rate (RTU only) |
 | `scan_interval` | int | 60 | Polling interval in seconds |
-| `connection_max_age_seconds` | int | 2700 | TCP connection recycle interval in seconds (`0` disables recycling) |
+| `connection_max_age_seconds` | int | 480 | TCP connection recycle interval in seconds (`0` disables recycling) |
 
 ## Architecture
 

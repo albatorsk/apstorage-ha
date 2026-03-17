@@ -79,7 +79,7 @@ apstorage:
 | `connection_type` | `tcp` or `rtu` | tcp | No |
 | `baudrate` | Serial baud rate | 9600 | No (RTU only) |
 | `scan_interval` | Polling interval in seconds | 60 | No |
-| `connection_max_age_seconds` | TCP connection recycle interval in seconds (0 disables recycling) | 2700 | No (options) |
+| `connection_max_age_seconds` | TCP connection recycle interval in seconds (0 disables recycling) | 480 | No (options) |
 
 ## Exposed Sensors
 
