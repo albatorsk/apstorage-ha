@@ -23,6 +23,7 @@ from . import APstorageCoordinator
 from .const import (
     DOMAIN,
     APSTORAGE_REGISTERS,
+    APSTORAGE_WRITABLE_REGISTERS,
     APSTORAGE_SCALE_REGISTERS,
     BATTERY_ALARM_BITS,
     PCS_ALARM_BITS,
@@ -41,8 +42,9 @@ async def async_setup_entry(
 
     entities = []
     scale_factor_registers = set(APSTORAGE_SCALE_REGISTERS.values())
+    writable_registers = set(APSTORAGE_WRITABLE_REGISTERS)
     for address, (name, count, value_type, scale, unit, device_class) in APSTORAGE_REGISTERS.items():
-        if address in scale_factor_registers:
+        if address in scale_factor_registers or address in writable_registers:
             continue
         entities.append(
             APstorageRegisterSensor(
