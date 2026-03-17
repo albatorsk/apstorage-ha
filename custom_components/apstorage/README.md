@@ -4,6 +4,8 @@ Home Assistant custom integration for **APstorage ELS-11.4 and ELT-12** battery 
 
 > **Note:** This integration has been tested on APstorage ELT-12 and may also work with ELS-11.4, which is expected to use the same register map. Other APstorage models may have different register mappings and may not be compatible.
 
+> **Note:** This integration is AI-generated and has been tested to work on APstorage ELT-12. Please validate behavior in your own installation before production use.
+
 ## Features
 
 - **Real-time Monitoring**: Battery voltage, current, power, SoC, SoH

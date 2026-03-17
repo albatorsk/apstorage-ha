@@ -6,6 +6,8 @@ A comprehensive Home Assistant custom integration for **APstorage ELS-11.4 and E
 
 > **⚠️ TEST STATUS:** This integration has been tested with **Modbus TCP** on an **APstorage ELT-12** in a real Home Assistant environment. **ELS-11.4 has not been validated yet**, although it is expected to use the same register map. Most entities appear to report sensible values, but some registers and entity mappings may still need validation against specific installations.
 
+> **⚠️ AI-GENERATED:** This integration was AI-generated and then validated on an **APstorage ELT-12** setup. Please review behavior in your environment before relying on it in production.
+
 ## Overview
 
 This integration exposes APstorage ELS-11.4 and ELT-12 battery system metrics as Home Assistant sensors, including:
