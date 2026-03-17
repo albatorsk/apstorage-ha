@@ -6,6 +6,8 @@ Home Assistant custom integration for **APstorage ELS-11.4 and ELT-12** battery 
 
 > **Note:** This integration is AI-generated and has been tested to work on APstorage ELT-12. Please validate behavior in your own installation before production use.
 
+> **Warning:** The four writable entities are disabled by default. Writing to them may make the Modbus server inoperative, and the only known recovery is to reinitialize the PCS to factory settings.
+
 ## Features
 
 - **Real-time Monitoring**: Battery voltage, current, power, SoC, SoH
@@ -38,6 +40,12 @@ Dependencies (pymodbus==3.11.2) will be installed automatically.
 2. Click **"+ Add Integration"**
 3. Search for **"APstorage"**
 4. Follow the setup wizard
+
+The following writable entities are created disabled by default and must be enabled manually before use:
+- Device Address (40068)
+- SoC Reserve Max (40079)
+- SoC Reserve Min (40080)
+- Set Power (40183)
 
 ### YAML Configuration (Alternative)
 

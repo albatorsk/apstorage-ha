@@ -8,6 +8,8 @@ A comprehensive Home Assistant custom integration for **APstorage ELS-11.4 and E
 
 > **⚠️ AI-GENERATED:** This integration was AI-generated and then validated on an **APstorage ELT-12** setup. Please review behavior in your environment before relying on it in production.
 
+> **⚠️ WRITE SAFETY:** The four writable entities are **disabled by default**. Writing to these registers may make the Modbus server inoperative. The only known recovery is to reinitialize the PCS to factory settings.
+
 ## Overview
 
 This integration exposes APstorage ELS-11.4 and ELT-12 battery system metrics as Home Assistant sensors, including:
@@ -46,6 +48,12 @@ After installation, configure the integration through the Home Assistant UI:
     - Set polling interval (default: 60 seconds)
 
 All APstorage sensors will be created automatically and appear under your devices.
+
+The four writable entities are created disabled by default and must be explicitly enabled in Home Assistant before use:
+- Device Address (40068)
+- SoC Reserve Max (40079)
+- SoC Reserve Min (40080)
+- Set Power (40183)
 
 ## Features
 

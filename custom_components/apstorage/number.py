@@ -139,6 +139,11 @@ class APstorageWritableNumber(NumberEntity):
         return self._coordinator.last_update_success
 
     @property
+    def entity_registry_enabled_default(self) -> bool:
+        """Writable controls should be opt-in in Home Assistant."""
+        return False
+
+    @property
     def device_info(self) -> DeviceInfo:
         """Return device information."""
         # Try to get device info from coordinator data
