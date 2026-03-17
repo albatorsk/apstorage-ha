@@ -62,7 +62,6 @@ The four writable entities are created disabled by default and must be explicitl
 ✅ **70+ Sensors** – voltage, current, power, temperatures, energy, alarms, etc.  
 ✅ **Binary Sensors** – individual alarm monitoring (33 alarm bits)  
 ✅ **Real-time Updates** – configurable polling interval (default 60s)  
-✅ **Signed/Unsigned Registers** – automatic 16/32-bit decoding  
 ✅ **Scale Factors** – voltage/current/power properly scaled  
 ✅ **Status Enumerations** – readable charge status values  
 ✅ **Device Info** – automatic manufacturer, model, serial number detection  
