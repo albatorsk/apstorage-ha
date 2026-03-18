@@ -106,6 +106,11 @@ APSTORAGE_WRITABLE_REGISTERS = {
     40183: {"min": -10000, "max": 10000, "step": 1, "mode": "box"},  # Set Power
 }
 
+# Read-only registers that should be exposed as number entities
+APSTORAGE_READONLY_NUMBER_REGISTERS = {
+    40089,  # Controller Heartbeat
+}
+
 CHARGE_STATUS_ENUM = {
     1: "OFF",
     2: "EMPTY",
