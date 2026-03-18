@@ -108,7 +108,6 @@ APSTORAGE_WRITABLE_REGISTERS = {
 
 # Read-only registers that should be exposed as number entities
 APSTORAGE_READONLY_NUMBER_REGISTERS = {
-    40089,  # Controller Heartbeat
 }
 
 CHARGE_STATUS_ENUM = {
