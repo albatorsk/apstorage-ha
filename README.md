@@ -8,7 +8,7 @@ A comprehensive Home Assistant custom integration for **APstorage ELS-11.4 and E
 
 > **⚠️ AI-GENERATED:** This integration was AI-generated and then validated on an **APstorage ELT-12** setup. Please review behavior in your environment before relying on it in production.
 
-> **⚠️ WRITE SAFETY:** The four writable entities are **disabled by default**. Writing to these registers may make the Modbus server inoperative. The only known recovery is to reinitialize the PCS to factory settings.
+> **⚠️ WRITE SAFETY:** The four writable entities are **disabled by default**. Writing to these registers may make the dynamic registers produce invalid `0` values. The only known way to regain functionality is to do a reinitialization of the PCS.
 
 ## Overview
 

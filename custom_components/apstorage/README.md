@@ -6,7 +6,7 @@ Home Assistant custom integration for **APstorage ELS-11.4 and ELT-12** battery 
 
 > **Note:** This integration is AI-generated and has been tested to work on APstorage ELT-12. Please validate behavior in your own installation before production use.
 
-> **Warning:** The four writable entities are disabled by default. Writing to them may make the Modbus server inoperative, and the only known recovery is to reinitialize the PCS to factory settings.
+> **Warning:** The four writable entities are disabled by default. Writing to these registers may make the dynamic registers produce invalid `0` values, and the only known way to regain functionality is to do a reinitialization of the PCS.
 
 ## Features
 
