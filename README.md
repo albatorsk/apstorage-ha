@@ -201,6 +201,5 @@ See [LICENSE](LICENSE)
 
 ## References
 
-- [APstorage Modbus Documentation](https://per.pe/APstorage-Modbus.pdf)
 - [Home Assistant Sensor Component](https://www.home-assistant.io/integrations/sensor/)
 - [pymodbus Library](https://pymodbus.readthedocs.io/)
