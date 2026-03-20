@@ -153,6 +153,23 @@ class TestAPstorageDecoding(unittest.TestCase):
             device_id=1,
         )
 
+    def test_write_register_encodes_negative_int16_value(self):
+        """Test negative register writes are sent as two's-complement uint16."""
+        response = MagicMock()
+        response.isError.return_value = False
+
+        self.client.client = MagicMock()
+        self.client.client.write_register.return_value = response
+
+        result = self.client.write_register(40183, -1)
+
+        self.assertTrue(result)
+        self.client.client.write_register.assert_called_once_with(
+            address=40183,
+            value=65535,
+            device_id=1,
+        )
+
     def test_create_client_uses_pymodbus_311_serial_signature(self):
         """Test serial client construction avoids removed method= keyword."""
         serial_client = APstorageModbusClient(

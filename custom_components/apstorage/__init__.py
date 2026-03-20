@@ -328,9 +328,12 @@ class APstorageModbusClient:
         try:
             if not self._ensure_connected(recycle_if_old=True):
                 return False
+            # Modbus registers are 16-bit values on the wire. For signed int16
+            # semantics, encode negatives as two's-complement before sending.
+            write_value = value & 0xFFFF if value < 0 else value
             result = self.client.write_register(
                 address=address,
-                value=value,
+                value=write_value,
                 device_id=self.unit,
             )
             if result.isError():
@@ -338,7 +341,7 @@ class APstorageModbusClient:
                 if self._sync_connect(force_reconnect=True):
                     retry = self.client.write_register(
                         address=address,
-                        value=value,
+                        value=write_value,
                         device_id=self.unit,
                     )
                     if not retry.isError():
