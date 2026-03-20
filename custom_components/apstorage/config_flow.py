@@ -7,6 +7,8 @@ from typing import Any
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_HOST, CONF_PORT
+from homeassistant.helpers.selector import selector
+from serial.tools import list_ports
 
 from .const import (
     DOMAIN,
@@ -21,6 +23,17 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _serial_port_options() -> list[dict[str, str]]:
+    """Return available serial ports as Home Assistant selector options."""
+    options: list[dict[str, str]] = []
+    for port in list_ports.comports():
+        label = port.device
+        if port.description and port.description != port.device:
+            label = f"{port.device} ({port.description})"
+        options.append({"label": label, "value": port.device})
+    return options
 
 
 class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -107,7 +120,14 @@ class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         schema = vol.Schema(
             {
-                vol.Required(CONF_HOST, default=self.data.get(CONF_HOST, "")): str,
+                vol.Required(CONF_HOST, default=self.data.get(CONF_HOST, "")): selector(
+                    {
+                        "select": {
+                            "options": _serial_port_options(),
+                            "custom_value": True,
+                        }
+                    }
+                ),
                 vol.Optional(CONF_BAUDRATE, default=9600): vol.In(
                     [300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]
                 ),

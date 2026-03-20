@@ -38,6 +38,9 @@
           "host": "Serial Port",
           "baudrate": "Serial Baud Rate",
           "unit": "Modbus Unit ID"
+        },
+        "data_description": {
+          "host": "Choose a detected serial device or enter the port path manually"
         }
       },
       "finish": {

@@ -44,7 +44,7 @@ After installation, configure the integration through the Home Assistant UI:
 4. Follow the configuration wizard:
     - Select connection type (TCP or RTU)
     - For TCP, enter the device IP address or hostname
-    - For RTU, enter the USB serial device path such as `/dev/ttyUSB0`
+    - For RTU, choose a detected serial port or enter the USB serial device path such as `/dev/ttyUSB0`
     - Configure connection parameters (port or baud rate)
     - Set polling interval (default: 60 seconds)
 
