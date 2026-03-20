@@ -42,14 +42,8 @@ class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ):
         """Handle the initial step."""
-        if user_input is not None:
-            await self.async_set_unique_id(user_input[CONF_HOST])
-            self._abort_if_unique_id_configured()
-            self.data = user_input
-            return await self.async_step_select_connection()
-
-        schema = vol.Schema({vol.Required(CONF_HOST): str})
-        return self.async_show_form(step_id="user", data_schema=schema)
+        self.data = {}
+        return await self.async_step_select_connection(user_input)
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
@@ -62,19 +56,7 @@ class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_abort(reason="unknown")
             self.data = dict(self._reconfigure_entry.data)
 
-        if user_input is not None:
-            self.data.update(user_input)
-            return await self.async_step_select_connection()
-
-        schema = vol.Schema(
-            {
-                vol.Required(
-                    CONF_HOST,
-                    default=self._reconfigure_entry.data.get(CONF_HOST, ""),
-                ): str
-            }
-        )
-        return self.async_show_form(step_id="reconfigure", data_schema=schema)
+        return await self.async_step_select_connection(user_input)
 
     async def async_step_select_connection(
         self, user_input: dict[str, Any] | None = None
@@ -87,7 +69,12 @@ class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return await self.async_step_rtu()
 
         schema = vol.Schema(
-            {vol.Required(CONF_CONNECTION_TYPE, default=CONNECTION_TCP): vol.In([CONNECTION_TCP, CONNECTION_RTU])}
+            {
+                vol.Required(
+                    CONF_CONNECTION_TYPE,
+                    default=self.data.get(CONF_CONNECTION_TYPE, CONNECTION_TCP),
+                ): vol.In([CONNECTION_TCP, CONNECTION_RTU])
+            }
         )
         return self.async_show_form(step_id="select_connection", data_schema=schema)
 
@@ -96,11 +83,13 @@ class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ):
         """Configure TCP connection."""
         if user_input is not None:
+            await self._async_abort_if_duplicate_host(user_input[CONF_HOST])
             self.data.update(user_input)
             return await self.async_step_finish()
 
         schema = vol.Schema(
             {
+                vol.Required(CONF_HOST, default=self.data.get(CONF_HOST, "")): str,
                 vol.Optional(CONF_PORT, default=502): int,
                 vol.Optional(CONF_UNIT, default=1): int,
             }
@@ -112,11 +101,13 @@ class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ):
         """Configure RTU connection."""
         if user_input is not None:
+            await self._async_abort_if_duplicate_host(user_input[CONF_HOST])
             self.data.update(user_input)
             return await self.async_step_finish()
 
         schema = vol.Schema(
             {
+                vol.Required(CONF_HOST, default=self.data.get(CONF_HOST, "")): str,
                 vol.Optional(CONF_BAUDRATE, default=9600): vol.In(
                     [300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]
                 ),
@@ -124,6 +115,14 @@ class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             }
         )
         return self.async_show_form(step_id="rtu", data_schema=schema)
+
+    async def _async_abort_if_duplicate_host(self, host: str) -> None:
+        """Abort if the selected host/serial port is already configured."""
+        if self._reconfigure_entry is not None:
+            return
+
+        await self.async_set_unique_id(host)
+        self._abort_if_unique_id_configured()
 
     async def async_step_finish(
         self, user_input: dict[str, Any] | None = None

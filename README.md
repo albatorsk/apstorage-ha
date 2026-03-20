@@ -42,9 +42,10 @@ After installation, configure the integration through the Home Assistant UI:
 2. Click **"+ Add Integration"**
 3. Search for **"APstorage"**
 4. Follow the configuration wizard:
-   - Enter the host (IP address for TCP or serial port for RTU)
-   - Select connection type (TCP or RTU)
-   - Configure connection parameters (port/baudrate)
+    - Select connection type (TCP or RTU)
+    - For TCP, enter the device IP address or hostname
+    - For RTU, enter the USB serial device path such as `/dev/ttyUSB0`
+    - Configure connection parameters (port or baud rate)
     - Set polling interval (default: 60 seconds)
 
 All APstorage sensors will be created automatically and appear under your devices.

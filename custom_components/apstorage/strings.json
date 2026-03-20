@@ -3,16 +3,16 @@
     "step": {
       "user": {
         "title": "APstorage Modbus Configuration",
-        "description": "Configure your APstorage device connection",
+        "description": "Select how your APstorage device is connected",
         "data": {
-          "host": "Host (IP for TCP, port path for RTU)"
+          "connection_type": "Connection Type"
         }
       },
       "reconfigure": {
         "title": "Reconfigure APstorage",
-        "description": "Update your APstorage device connection",
+        "description": "Update how your APstorage device is connected",
         "data": {
-          "host": "Host (IP for TCP, port path for RTU)"
+          "connection_type": "Connection Type"
         }
       },
       "select_connection": {
@@ -26,6 +26,7 @@
         "title": "Modbus TCP Configuration",
         "description": "Configure Modbus TCP connection parameters",
         "data": {
+          "host": "IP Address or Hostname",
           "port": "Modbus TCP Port",
           "unit": "Modbus Unit ID"
         }
@@ -34,6 +35,7 @@
         "title": "Modbus RTU Configuration",
         "description": "Configure Modbus RTU serial connection parameters",
         "data": {
+          "host": "Serial Port",
           "baudrate": "Serial Baud Rate",
           "unit": "Modbus Unit ID"
         }
