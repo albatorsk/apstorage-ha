@@ -1,6 +1,7 @@
 """APstorage integration: setup and coordinator."""
 from __future__ import annotations
 
+import asyncio
 import logging
 import threading
 import time
@@ -67,10 +68,35 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.error("Failed to initialize APstorage coordinator")
         return False
 
+    # Don't block setup on initial connection; allow it to fail and retry in background.
+    # This prevents Home Assistant from becoming unresponsive if the device is unreachable.
+    try:
+        connected = await asyncio.wait_for(
+            coordinator.async_init(),
+            timeout=10.0
+        )
+        if not connected:
+            _LOGGER.warning(
+                "Failed to connect to APstorage device at %s:%s during setup; will retry in background",
+                entry.data.get(CONF_HOST),
+                entry.data.get(CONF_PORT, 502),
+            )
+    except asyncio.TimeoutError:
+        _LOGGER.warning(
+            "Connection to APstorage device at %s:%s timed out during setup (10s); will retry in background",
+            entry.data.get(CONF_HOST),
+            entry.data.get(CONF_PORT, 502),
+        )
+    except Exception as err:  # pragma: no cover
+        _LOGGER.warning(
+            "Error during APstorage setup connection: %s; will retry in background",
+            err,
+        )
+
     await coordinator.async_refresh()
     if not coordinator.last_update_success:
-        _LOGGER.warning(
-            "Initial APstorage refresh failed during setup; entities may be created without serial-prefixed IDs until a later refresh succeeds"
+        _LOGGER.debug(
+            "Initial APstorage refresh failed during setup; entities may be created without data until a later refresh succeeds"
         )
 
     hass.data[DOMAIN][entry.entry_id]["coordinator"] = coordinator
@@ -208,7 +234,17 @@ class APstorageModbusClient:
     async def async_connect(self):
         """Connect to the Modbus device."""
         try:
-            return await self.hass.async_add_executor_job(self._sync_connect)
+            return await asyncio.wait_for(
+                self.hass.async_add_executor_job(self._sync_connect),
+                timeout=10.0
+            )
+        except asyncio.TimeoutError:
+            _LOGGER.error(
+                "Connection to Modbus device at %s:%s timed out after 10 seconds",
+                self.host,
+                self.port,
+            )
+            return False
         except Exception as err:  # pragma: no cover
             _LOGGER.exception("Failed to init Modbus client: %s", err)
             return False
