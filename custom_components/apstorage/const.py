@@ -163,7 +163,7 @@ PCS_ALARM_BITS = {
 
 # Diagnostic sensors (should be hidden by default in UI)
 DIAGNOSTIC_REGISTERS = {
-    40002, 40003, 40004, 40020, 40036, 40068, 40070, 40071,  # Model info, Manufacturer, Model, Options
+    40002, 40003, 40004, 40020, 40036, 40044, 40052, 40068, 40070, 40071,  # Model info, Manufacturer, Model, Options, Version, Serial Number
     40089,  # Heartbeat
     40096, 40100,  # Alarm bitfields
     40123, 40124, 40126, 40128, 40129, 40131, 40133, 40152, 40158,  # Scale factors
