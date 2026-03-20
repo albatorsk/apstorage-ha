@@ -59,7 +59,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         unit=entry.data.get("unit", 1),
         connection_type=entry.data.get(CONF_CONNECTION_TYPE, CONNECTION_TCP),
         scan_interval=timedelta(seconds=scan_interval_seconds),
-        baudrate=entry.data.get(CONF_BAUDRATE, 9600),
+        baudrate=int(entry.data.get(CONF_BAUDRATE, 9600)),
         connection_max_age_seconds=connection_max_age_seconds,
     )
 
@@ -122,7 +122,6 @@ class APstorageModbusClient:
             return ModbusTcpClient(self.host, port=self.port)
 
         return ModbusSerialClient(
-            method="rtu",
             port=self.host,
             baudrate=self.baudrate,
             stopbits=1,

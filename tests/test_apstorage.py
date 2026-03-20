@@ -153,6 +153,41 @@ class TestAPstorageDecoding(unittest.TestCase):
             device_id=1,
         )
 
+    def test_create_client_uses_pymodbus_311_serial_signature(self):
+        """Test serial client construction avoids removed method= keyword."""
+        serial_client = APstorageModbusClient(
+            hass=None,
+            host="/dev/ttyUSB0",
+            port=502,
+            unit=1,
+            connection_type="rtu",
+            baudrate=9600,
+        )
+
+        fake_pymodbus_client = types.ModuleType("pymodbus.client")
+        fake_pymodbus_client.ModbusTcpClient = MagicMock()
+        fake_pymodbus_client.ModbusSerialClient = MagicMock(return_value="serial-client")
+
+        original_pymodbus_client = sys.modules.get("pymodbus.client")
+        sys.modules["pymodbus.client"] = fake_pymodbus_client
+        try:
+            result = serial_client._create_client()
+        finally:
+            if original_pymodbus_client is None:
+                del sys.modules["pymodbus.client"]
+            else:
+                sys.modules["pymodbus.client"] = original_pymodbus_client
+
+        self.assertEqual(result, "serial-client")
+        fake_pymodbus_client.ModbusSerialClient.assert_called_once_with(
+            port="/dev/ttyUSB0",
+            baudrate=9600,
+            stopbits=1,
+            bytesize=8,
+            parity="N",
+            timeout=3,
+        )
+
     def test_read_registers_reconnects_and_retries_on_error(self):
         """Test failed reads trigger reconnect and one retry."""
         first_response = MagicMock()

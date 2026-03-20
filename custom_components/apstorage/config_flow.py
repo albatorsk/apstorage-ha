@@ -128,8 +128,18 @@ class APstorageConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         }
                     }
                 ),
-                vol.Optional(CONF_BAUDRATE, default=9600): vol.In(
-                    [300, 600, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]
+                vol.Optional(
+                    CONF_BAUDRATE,
+                    default=str(self.data.get(CONF_BAUDRATE, 9600)),
+                ): selector(
+                    {
+                        "select": {
+                            "options": [
+                                "300", "600", "1200", "2400", "4800",
+                                "9600", "19200", "38400", "57600", "115200",
+                            ]
+                        }
+                    }
                 ),
                 vol.Optional(CONF_UNIT, default=1): int,
             }
