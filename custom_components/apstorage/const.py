@@ -99,12 +99,8 @@ APSTORAGE_REGISTERS = {
 }
 
 # Writable registers (address -> UI metadata)
-APSTORAGE_WRITABLE_REGISTERS = {
-    40068: {"min": 1, "max": 247, "step": 1, "mode": "box"},  # Device Address
-    40079: {"min": 0, "max": 100, "step": 0.1, "mode": "slider"},  # SoC Reserve Max
-    40080: {"min": 0, "max": 100, "step": 0.1, "mode": "slider"},  # SoC Reserve Min
-    40183: {"min": -10000, "max": 10000, "step": 1, "mode": "box"},  # Set Power
-}
+# Read-only safety mode: keep empty so no writable Number entities are created.
+APSTORAGE_WRITABLE_REGISTERS = {}
 
 # Read-only registers that should be exposed as number entities
 APSTORAGE_READONLY_NUMBER_REGISTERS = {

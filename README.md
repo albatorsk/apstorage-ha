@@ -8,7 +8,7 @@ A comprehensive Home Assistant custom integration for **APstorage ELS-11.4 and E
 
 > **⚠️ AI-GENERATED:** This integration was AI-generated and then validated on an **APstorage ELT-12** setup. Please review behavior in your environment before relying on it in production.
 
-> **⚠️ WRITE SAFETY:** The four writable entities are **disabled by default**; write to these registers at your own risk and use caution, as you may need to do a complete reinitialization of the PCS to restore dynamic Modbus register functionality if something goes wrong.
+> **⚠️ READ-ONLY SAFETY MODE:** This integration is configured as read-only and does not expose writable entities.
 
 ## Overview
 
@@ -50,11 +50,7 @@ After installation, configure the integration through the Home Assistant UI:
 
 All APstorage sensors will be created automatically and appear under your devices.
 
-The four writable entities are created disabled by default and must be explicitly enabled in Home Assistant before use:
-- Device Address (40068)
-- SoC Reserve Max (40079)
-- SoC Reserve Min (40080)
-- Set Power (40183)
+This build runs in read-only mode and does not create writable entities.
 
 ## Features
 
