@@ -8,7 +8,8 @@ A comprehensive Home Assistant custom integration for **APstorage ELS-11.4 and E
 
 > **⚠️ AI-GENERATED:** This integration was AI-generated and then validated on an **APstorage ELT-12** setup. Please review behavior in your environment before relying on it in production.
 
-> **⚠️ READ-ONLY SAFETY MODE:** This integration is configured as read-only and does not expose writable entities.
+> **⚠️ OPERATIONAL LIMITATION:** When Modbus is enabled on the APstorage PCS, local "System mode" operation is unavailable and the battery remains in Standby (**HOLDING**) mode.
+
 
 ## Overview
 
@@ -50,7 +51,7 @@ After installation, configure the integration through the Home Assistant UI:
 
 All APstorage sensors will be created automatically and appear under your devices.
 
-This build runs in read-only mode and does not create writable entities.
+This build exposes supported writable entities (for example, Set Power) as disabled-by-default Number controls.
 
 ## Features
 

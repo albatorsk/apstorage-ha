@@ -6,7 +6,8 @@ Home Assistant custom integration for **APstorage ELS-11.4 and ELT-12** battery 
 
 > **Note:** This integration is AI-generated and has been tested to work on APstorage ELT-12. Please validate behavior in your own installation before production use.
 
-> **Warning:** This integration is configured as read-only and does not expose writable entities.
+> **Warning:** When Modbus is enabled on the APstorage PCS, local "System mode" operation is unavailable and the battery remains in Standby (**HOLDING**) mode.
+
 
 ## Features
 
@@ -41,7 +42,7 @@ Dependencies (pymodbus==3.11.2) will be installed automatically.
 3. Search for **"APstorage"**
 4. Follow the setup wizard
 
-This build runs in read-only mode and does not create writable entities.
+This build exposes supported writable entities (for example, Set Power) as disabled-by-default Number controls.
 
 ### YAML Configuration (Alternative)
 

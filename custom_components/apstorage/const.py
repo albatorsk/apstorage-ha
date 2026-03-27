@@ -99,8 +99,9 @@ APSTORAGE_REGISTERS = {
 }
 
 # Writable registers (address -> UI metadata)
-# Read-only safety mode: keep empty so no writable Number entities are created.
-APSTORAGE_WRITABLE_REGISTERS = {}
+APSTORAGE_WRITABLE_REGISTERS = {
+    40183: {"min": -10000, "max": 10000, "step": 1, "mode": "box"},
+}
 
 # Read-only registers that should be exposed as number entities
 APSTORAGE_READONLY_NUMBER_REGISTERS = {
