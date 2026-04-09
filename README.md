@@ -8,7 +8,7 @@ A comprehensive Home Assistant custom integration for **APstorage ELS-11.4 and E
 
 > **⚠️ AI-GENERATED:** This integration was AI-generated and then validated on an **APstorage ELT-12** setup. Please review behavior in your environment before relying on it in production.
 
-> **⚠️ OPERATIONAL LIMITATION:** When Modbus is enabled on the APstorage PCS, local "System mode" operation is unavailable and the battery remains in Standby (**HOLDING**) mode.
+> **⚠️ OPERATIONAL LIMITATION:** When Modbus is enabled on the APstorage PCS, local "System mode" operation is unavailable and the battery remains in Standby (**HOLDING**) mode until it has been configured to charge or discharge.
 
 
 ## Overview
