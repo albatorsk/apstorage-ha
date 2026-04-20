@@ -17,6 +17,7 @@ def _install_homeassistant_stubs() -> None:
     const = types.ModuleType("homeassistant.const")
     helpers = types.ModuleType("homeassistant.helpers")
     entity_registry = types.ModuleType("homeassistant.helpers.entity_registry")
+    config_validation = types.ModuleType("homeassistant.helpers.config_validation")
     update_coordinator = types.ModuleType("homeassistant.helpers.update_coordinator")
 
     class HomeAssistant:  # noqa: D401
@@ -41,13 +42,18 @@ def _install_homeassistant_stubs() -> None:
     def async_get(_hass):
         return None
 
+    def config_entry_only_config_schema(_domain):
+        return {}
+
     core.HomeAssistant = HomeAssistant
     config_entries.ConfigEntry = ConfigEntry
     const.CONF_HOST = "host"
     const.CONF_PORT = "port"
     const.Platform = Platform
     entity_registry.async_get = async_get
+    config_validation.config_entry_only_config_schema = config_entry_only_config_schema
     helpers.entity_registry = entity_registry
+    helpers.config_validation = config_validation
     update_coordinator.DataUpdateCoordinator = DataUpdateCoordinator
     update_coordinator.UpdateFailed = UpdateFailed
 
@@ -57,6 +63,7 @@ def _install_homeassistant_stubs() -> None:
     sys.modules["homeassistant.const"] = const
     sys.modules["homeassistant.helpers"] = helpers
     sys.modules["homeassistant.helpers.entity_registry"] = entity_registry
+    sys.modules["homeassistant.helpers.config_validation"] = config_validation
     sys.modules["homeassistant.helpers.update_coordinator"] = update_coordinator
 
 
