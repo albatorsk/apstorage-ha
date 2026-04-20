@@ -53,8 +53,6 @@ After installation, configure the integration through the Home Assistant UI:
 
 All APstorage sensors will be created automatically and appear under your devices.
 
-This build exposes supported writable entities (for example, Set Power) as disabled-by-default Number controls.
-
 ## Features
 
 ✅ **Compatible Models** – APstorage ELS-11.4 and ELT-12  

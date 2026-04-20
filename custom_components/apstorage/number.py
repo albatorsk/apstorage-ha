@@ -332,8 +332,8 @@ class APstorageWritableNumber(NumberEntity):
 
     @property
     def entity_registry_enabled_default(self) -> bool:
-        """Writable controls should be opt-in in Home Assistant."""
-        return False
+        """Expose writable controls by default in Home Assistant."""
+        return True
 
     @property
     def device_info(self) -> DeviceInfo:

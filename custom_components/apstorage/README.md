@@ -42,8 +42,6 @@ Dependencies (pymodbus==3.11.2) will be installed automatically.
 3. Search for **"APstorage"**
 4. Follow the setup wizard
 
-This build exposes supported writable entities (for example, Set Power) as disabled-by-default Number controls.
-
 ### YAML Configuration (Alternative)
 
 #### Modbus TCP (default)
