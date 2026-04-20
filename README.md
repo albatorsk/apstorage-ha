@@ -1,5 +1,7 @@
 # APstorage Home Assistant Integration
 
+[![Open your Home Assistant instance and open this repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=albatorsk&repository=apstorage-ha&category=integration)
+
 A comprehensive Home Assistant custom integration for **APstorage ELS-11.4 and ELT-12** battery systems, supporting Modbus TCP and RTU communication with real-time monitoring and control.
 
 > **⚠️ COMPATIBILITY:** This integration is intended for **APstorage ELT-12** and may also work with **ELS-11.4**. Other APstorage models may have different register mappings and may not work correctly with this integration.
