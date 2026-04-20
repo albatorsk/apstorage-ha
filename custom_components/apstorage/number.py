@@ -300,11 +300,19 @@ class APstorageWritableNumber(NumberEntity):
     @property
     def native_min_value(self) -> float:
         """Return the minimum value."""
+        if self._address == 40183 and self._coordinator.data:
+            max_charge = self._coordinator.data.get(40074, {}).get("value")
+            if isinstance(max_charge, (int, float)):
+                return -float(max_charge)
         return self._min_value
 
     @property
     def native_max_value(self) -> float:
         """Return the maximum value."""
+        if self._address == 40183 and self._coordinator.data:
+            max_discharge = self._coordinator.data.get(40075, {}).get("value")
+            if isinstance(max_discharge, (int, float)):
+                return float(max_discharge)
         return self._max_value
 
     @property
@@ -399,6 +407,17 @@ class APstorageWritableNumber(NumberEntity):
                 raw_value = value / effective_scale
 
             int_value = int(round(raw_value))
+
+            if int_value < -32768 or int_value > 32767:
+                raise HomeAssistantError(
+                    f"Requested value {value} is outside the supported int16 range for register {self._address}"
+                )
+
+            if value < self.native_min_value or value > self.native_max_value:
+                raise HomeAssistantError(
+                    f"Requested value {value} is outside the safe range {self.native_min_value}..{self.native_max_value}"
+                )
+
             success = await self._coordinator.hass.async_add_executor_job(
                 self._coordinator.modbus_client.write_register, self._address, int_value
             )

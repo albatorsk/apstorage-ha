@@ -137,19 +137,19 @@ class TestAPstorageDecoding(unittest.TestCase):
         )
 
     def test_write_register_uses_pymodbus_311_keywords(self):
-        """Test single register writes use pymodbus 3.11 keyword arguments."""
+        """Test writes use the safer pymodbus 3.11 multi-register API."""
         response = MagicMock()
         response.isError.return_value = False
 
         self.client.client = MagicMock()
-        self.client.client.write_register.return_value = response
+        self.client.client.write_registers.return_value = response
 
         result = self.client.write_register(40183, 250)
 
         self.assertTrue(result)
-        self.client.client.write_register.assert_called_once_with(
+        self.client.client.write_registers.assert_called_once_with(
             address=40183,
-            value=250,
+            values=[250],
             device_id=1,
         )
 
@@ -159,14 +159,14 @@ class TestAPstorageDecoding(unittest.TestCase):
         response.isError.return_value = False
 
         self.client.client = MagicMock()
-        self.client.client.write_register.return_value = response
+        self.client.client.write_registers.return_value = response
 
         result = self.client.write_register(40183, -1)
 
         self.assertTrue(result)
-        self.client.client.write_register.assert_called_once_with(
+        self.client.client.write_registers.assert_called_once_with(
             address=40183,
-            value=65535,
+            values=[65535],
             device_id=1,
         )
 

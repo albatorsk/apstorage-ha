@@ -324,26 +324,60 @@ class APstorageModbusClient:
             return None
 
     def write_register(self, address: int, value: int) -> bool:
-        """Write a single holding register synchronously."""
+        """Write a single holding register synchronously.
+
+        Use Modbus function 16 (write multiple registers) even for one register.
+        Some APstorage/SunSpec devices are sensitive to function 6 writes on
+        control points like Set Power and may stop responding afterwards.
+        """
         try:
             if not self._ensure_connected(recycle_if_old=True):
                 return False
+
+            if not -32768 <= value <= 32767:
+                _LOGGER.error(
+                    "Refusing to write out-of-range int16 value %d to register %d",
+                    value,
+                    address,
+                )
+                return False
+
             # Modbus registers are 16-bit values on the wire. For signed int16
             # semantics, encode negatives as two's-complement before sending.
             write_value = value & 0xFFFF if value < 0 else value
-            result = self.client.write_register(
-                address=address,
-                value=write_value,
-                device_id=self.unit,
-            )
+
+            writer = getattr(self.client, "write_registers", None)
+            use_multi_write = callable(writer)
+            if use_multi_write:
+                result = writer(
+                    address=address,
+                    values=[write_value],
+                    device_id=self.unit,
+                )
+            else:
+                result = self.client.write_register(
+                    address=address,
+                    value=write_value,
+                    device_id=self.unit,
+                )
+
             if result.isError():
                 _LOGGER.warning("Modbus error writing register %d: %s", address, result)
                 if self._sync_connect(force_reconnect=True):
-                    retry = self.client.write_register(
-                        address=address,
-                        value=write_value,
-                        device_id=self.unit,
-                    )
+                    writer = getattr(self.client, "write_registers", None)
+                    use_multi_write = callable(writer)
+                    if use_multi_write:
+                        retry = writer(
+                            address=address,
+                            values=[write_value],
+                            device_id=self.unit,
+                        )
+                    else:
+                        retry = self.client.write_register(
+                            address=address,
+                            value=write_value,
+                            device_id=self.unit,
+                        )
                     if not retry.isError():
                         _LOGGER.debug("Write register %d succeeded after reconnect", address)
                         return True
@@ -355,11 +389,21 @@ class APstorageModbusClient:
             _LOGGER.exception("Exception writing register: %s", err)
             try:
                 if self._sync_connect(force_reconnect=True):
-                    retry = self.client.write_register(
-                        address=address,
-                        value=value,
-                        device_id=self.unit,
-                    )
+                    writer = getattr(self.client, "write_registers", None)
+                    use_multi_write = callable(writer)
+                    write_value = value & 0xFFFF if value < 0 else value
+                    if use_multi_write:
+                        retry = writer(
+                            address=address,
+                            values=[write_value],
+                            device_id=self.unit,
+                        )
+                    else:
+                        retry = self.client.write_register(
+                            address=address,
+                            value=write_value,
+                            device_id=self.unit,
+                        )
                     if not retry.isError():
                         _LOGGER.debug("Write register %d succeeded after reconnect", address)
                         return True
