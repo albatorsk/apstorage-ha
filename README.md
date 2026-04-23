@@ -1,4 +1,4 @@
-# APsystems APstorage Modbus integration for Home Assistant
+# APstorage Modbus — Home Assistant Custom Integration
 
 [![Open your Home Assistant instance and open this repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=albatorsk&repository=apstorage-ha&category=integration)
 
