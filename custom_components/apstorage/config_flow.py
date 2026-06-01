@@ -16,9 +16,11 @@ from .const import (
     CONNECTION_RTU,
     CONF_CONNECTION_TYPE,
     CONF_CONNECTION_MAX_AGE_SECONDS,
+    CONF_REGISTER_ADDRESS_OFFSET,
     CONF_BAUDRATE,
     CONF_UNIT,
     DEFAULT_CONNECTION_MAX_AGE_SECONDS,
+    DEFAULT_REGISTER_ADDRESS_OFFSET,
     DEFAULT_SCAN_INTERVAL,
 )
 
@@ -211,6 +213,13 @@ class APstorageOptionsFlowHandler(config_entries.OptionsFlow):
                 DEFAULT_CONNECTION_MAX_AGE_SECONDS,
             ),
         )
+        current_register_address_offset = self._config_entry.options.get(
+            CONF_REGISTER_ADDRESS_OFFSET,
+            self._config_entry.data.get(
+                CONF_REGISTER_ADDRESS_OFFSET,
+                DEFAULT_REGISTER_ADDRESS_OFFSET,
+            ),
+        )
         
         schema = vol.Schema(
             {
@@ -222,6 +231,10 @@ class APstorageOptionsFlowHandler(config_entries.OptionsFlow):
                     CONF_CONNECTION_MAX_AGE_SECONDS,
                     default=current_connection_max_age,
                 ): vol.All(vol.Coerce(int), vol.Range(min=0, max=86400)),
+                vol.Optional(
+                    CONF_REGISTER_ADDRESS_OFFSET,
+                    default=current_register_address_offset,
+                ): vol.All(vol.Coerce(int), vol.In([-1, 0])),
             }
         )
         return self.async_show_form(step_id="init", data_schema=schema)

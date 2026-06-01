@@ -67,7 +67,8 @@
         "description": "Configure APstorage integration options",
         "data": {
           "scan_interval": "Scan Interval (seconds)",
-          "connection_max_age_seconds": "Connection Recycle Interval (seconds, 0 = disabled)"
+          "connection_max_age_seconds": "Connection Recycle Interval (seconds, 0 = disabled)",
+          "register_address_offset": "Register Address Offset (-1 for 0-based wire addressing, 0 for direct)"
         }
       }
     }

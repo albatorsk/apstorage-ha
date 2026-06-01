@@ -75,6 +75,7 @@ apstorage:
 | `baudrate` | Serial baud rate | 9600 | No (RTU only) |
 | `scan_interval` | Polling interval in seconds | 60 | No |
 | `connection_max_age_seconds` | TCP connection recycle interval in seconds (0 disables recycling) | 480 | No (options) |
+| `register_address_offset` | Register address offset applied to Modbus requests (`0` direct, `-1` for 0-based wire address) | 0 | No (options) |
 
 ## Exposed Sensors
 

@@ -94,6 +94,7 @@ See [full sensor list](custom_components/apstorage/README.md#exposed-sensors) in
 | `baudrate` | int | 9600 | Serial baud rate (RTU only) |
 | `scan_interval` | int | 60 | Polling interval in seconds |
 | `connection_max_age_seconds` | int | 480 | TCP connection recycle interval in seconds (`0` disables recycling) |
+| `register_address_offset` | int | 0 | Modbus register offset (`0` direct, `-1` for 0-based wire addressing) |
 
 ## Architecture
 

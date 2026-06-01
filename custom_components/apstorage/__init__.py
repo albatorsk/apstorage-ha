@@ -21,9 +21,11 @@ from .const import (
     CONF_BAUDRATE,
     CONF_CONNECTION_MAX_AGE_SECONDS,
     CONF_CONNECTION_TYPE,
+    CONF_REGISTER_ADDRESS_OFFSET,
     CONNECTION_TCP,
     CONNECTION_RTU,
     DEFAULT_CONNECTION_MAX_AGE_SECONDS,
+    DEFAULT_REGISTER_ADDRESS_OFFSET,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
 )
@@ -53,6 +55,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         CONF_CONNECTION_MAX_AGE_SECONDS,
         entry.data.get(CONF_CONNECTION_MAX_AGE_SECONDS, DEFAULT_CONNECTION_MAX_AGE_SECONDS),
     )
+    register_address_offset = int(
+        entry.options.get(
+            CONF_REGISTER_ADDRESS_OFFSET,
+            entry.data.get(CONF_REGISTER_ADDRESS_OFFSET, DEFAULT_REGISTER_ADDRESS_OFFSET),
+        )
+    )
 
     # Create coordinator
     coordinator = APstorageCoordinator(
@@ -64,6 +72,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         scan_interval=timedelta(seconds=scan_interval_seconds),
         baudrate=int(entry.data.get(CONF_BAUDRATE, 9600)),
         connection_max_age_seconds=connection_max_age_seconds,
+        register_address_offset=register_address_offset,
     )
 
     # Don't block setup on initial connection; allow it to fail and retry in background.
@@ -126,6 +135,7 @@ class APstorageModbusClient:
         connection_type: str,
         baudrate: int = 9600,
         connection_max_age_seconds: int = DEFAULT_CONNECTION_MAX_AGE_SECONDS,
+        register_address_offset: int = DEFAULT_REGISTER_ADDRESS_OFFSET,
     ):
         self.hass = hass
         self.host = host
@@ -134,9 +144,14 @@ class APstorageModbusClient:
         self.connection_type = connection_type
         self.baudrate = baudrate
         self.connection_max_age_seconds = max(0, int(connection_max_age_seconds))
+        self.register_address_offset = int(register_address_offset)
         self.client = None
         self._client_lock = threading.Lock()
         self._last_connect_monotonic: float | None = None
+
+    def _to_wire_address(self, address: int) -> int:
+        """Convert logical register address to Modbus wire address."""
+        return int(address) + self.register_address_offset
 
     def _create_client(self):
         """Create a new pymodbus client instance."""
@@ -254,6 +269,7 @@ class APstorageModbusClient:
     def read_registers(self, address: int, count: int) -> list[int] | None:
         """Read holding registers synchronously."""
         try:
+            wire_address = self._to_wire_address(address)
             if not self._ensure_connected(recycle_if_old=True):
                 _LOGGER.debug(
                     "Skipping Modbus read for %s:%s address=%d count=%d device_id=%d because client is not connected",
@@ -265,7 +281,7 @@ class APstorageModbusClient:
                 )
                 return None
             rr = self.client.read_holding_registers(
-                address=address,
+                address=wire_address,
                 count=count,
                 device_id=self.unit,
             )
@@ -281,7 +297,7 @@ class APstorageModbusClient:
                 )
                 if self._sync_connect(force_reconnect=True):
                     retry = self.client.read_holding_registers(
-                        address=address,
+                        address=wire_address,
                         count=count,
                         device_id=self.unit,
                     )
@@ -311,7 +327,7 @@ class APstorageModbusClient:
             try:
                 if self._sync_connect(force_reconnect=True):
                     retry = self.client.read_holding_registers(
-                        address=address,
+                        address=wire_address,
                         count=count,
                         device_id=self.unit,
                     )
@@ -329,6 +345,7 @@ class APstorageModbusClient:
         control points like Set Power and may stop responding afterwards.
         """
         try:
+            wire_address = self._to_wire_address(address)
             if not self._ensure_connected(recycle_if_old=True):
                 return False
 
@@ -348,13 +365,13 @@ class APstorageModbusClient:
             use_multi_write = callable(writer)
             if use_multi_write:
                 result = writer(
-                    address=address,
+                    address=wire_address,
                     values=[write_value],
                     device_id=self.unit,
                 )
             else:
                 result = self.client.write_register(
-                    address=address,
+                    address=wire_address,
                     value=write_value,
                     device_id=self.unit,
                 )
@@ -366,13 +383,13 @@ class APstorageModbusClient:
                     use_multi_write = callable(writer)
                     if use_multi_write:
                         retry = writer(
-                            address=address,
+                            address=wire_address,
                             values=[write_value],
                             device_id=self.unit,
                         )
                     else:
                         retry = self.client.write_register(
-                            address=address,
+                            address=wire_address,
                             value=write_value,
                             device_id=self.unit,
                         )
@@ -392,13 +409,13 @@ class APstorageModbusClient:
                     write_value = value & 0xFFFF if value < 0 else value
                     if use_multi_write:
                         retry = writer(
-                            address=address,
+                            address=wire_address,
                             values=[write_value],
                             device_id=self.unit,
                         )
                     else:
                         retry = self.client.write_register(
-                            address=address,
+                            address=wire_address,
                             value=write_value,
                             device_id=self.unit,
                         )
@@ -471,6 +488,7 @@ class APstorageCoordinator(DataUpdateCoordinator):
         scan_interval=None,
         baudrate: int = 9600,
         connection_max_age_seconds: int = DEFAULT_CONNECTION_MAX_AGE_SECONDS,
+        register_address_offset: int = DEFAULT_REGISTER_ADDRESS_OFFSET,
     ):
         self.modbus_client = APstorageModbusClient(
             hass,
@@ -480,6 +498,7 @@ class APstorageCoordinator(DataUpdateCoordinator):
             connection_type,
             baudrate,
             connection_max_age_seconds,
+            register_address_offset,
         )
         
         if scan_interval is None:

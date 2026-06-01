@@ -178,6 +178,57 @@ class TestAPstorageDecoding(unittest.TestCase):
             device_id=1,
         )
 
+    def test_read_registers_applies_configured_address_offset(self):
+        """Reads should apply register_address_offset before sending requests."""
+        response = MagicMock()
+        response.isError.return_value = False
+        response.registers = [123]
+
+        offset_client = APstorageModbusClient(
+            hass=None,
+            host="test",
+            port=502,
+            unit=1,
+            connection_type="tcp",
+            register_address_offset=-1,
+        )
+        offset_client.client = MagicMock()
+        offset_client.client.read_holding_registers.return_value = response
+
+        result = offset_client.read_registers(40183, 1)
+
+        self.assertEqual(result, [123])
+        offset_client.client.read_holding_registers.assert_called_once_with(
+            address=40182,
+            count=1,
+            device_id=1,
+        )
+
+    def test_write_register_applies_configured_address_offset(self):
+        """Writes should apply register_address_offset before sending requests."""
+        response = MagicMock()
+        response.isError.return_value = False
+
+        offset_client = APstorageModbusClient(
+            hass=None,
+            host="test",
+            port=502,
+            unit=1,
+            connection_type="tcp",
+            register_address_offset=-1,
+        )
+        offset_client.client = MagicMock()
+        offset_client.client.write_registers.return_value = response
+
+        result = offset_client.write_register(40183, 250)
+
+        self.assertTrue(result)
+        offset_client.client.write_registers.assert_called_once_with(
+            address=40182,
+            values=[250],
+            device_id=1,
+        )
+
     def test_create_client_uses_pymodbus_311_serial_signature(self):
         """Test serial client construction avoids removed method= keyword."""
         serial_client = APstorageModbusClient(
