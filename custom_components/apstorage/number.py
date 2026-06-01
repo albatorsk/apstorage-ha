@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Callable
 
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
@@ -13,6 +13,10 @@ from homeassistant.components.number import (
 )
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers.event import async_call_later
+
+# How long to wait after the last Set Power call before sending to the device.
+_WRITE_DEBOUNCE_SECONDS = 0.4
 
 from . import APstorageCoordinator
 from .const import (
@@ -219,6 +223,9 @@ class APstorageWritableNumber(APstorageEntityMixin, NumberEntity):
         self._max_value = float(meta.get("max", 100))
         self._step = float(meta.get("step", 1))
         self._mode = str(meta.get("mode", "box"))
+        # Debounce state: cancel handle + the last requested (value, int_value) pair.
+        self._debounce_unsub: Callable | None = None
+        self._pending_write: tuple[float, int] | None = None
 
     @property
     def name(self) -> str:
@@ -307,65 +314,84 @@ class APstorageWritableNumber(APstorageEntityMixin, NumberEntity):
         return False
 
     async def async_set_native_value(self, value: float) -> None:
-        """Set the register value."""
-        try:
-            effective_scale = self._scale
-            scale_reg = APSTORAGE_SCALE_REGISTERS.get(self._address)
-            if scale_reg is not None and self._coordinator.data and scale_reg in self._coordinator.data:
-                sf = self._coordinator.data[scale_reg].get("value")
-                if sf is not None:
-                    effective_scale = 10 ** int(sf)
+        """Set the register value, debouncing rapid calls so only the last write is sent."""
+        effective_scale = self._scale
+        scale_reg = APSTORAGE_SCALE_REGISTERS.get(self._address)
+        if scale_reg is not None and self._coordinator.data and scale_reg in self._coordinator.data:
+            sf = self._coordinator.data[scale_reg].get("value")
+            if sf is not None:
+                effective_scale = 10 ** int(sf)
 
-            # Convert displayed value back to raw register value.
-            # Example: scale 0.1 means 85.6% is stored as 856.
-            raw_value = value
-            if effective_scale not in (0, 1):
-                raw_value = value / effective_scale
+        # Convert displayed value back to raw register value.
+        # Example: scale 0.1 means 85.6% is stored as 856.
+        raw_value = value
+        if effective_scale not in (0, 1):
+            raw_value = value / effective_scale
 
-            int_value = int(round(raw_value))
+        int_value = int(round(raw_value))
 
-            _LOGGER.debug(
-                "Set Power write requested: value=%s effective_scale=%s raw=%s int=%s range=%s..%s",
-                value,
-                effective_scale,
-                raw_value,
-                int_value,
-                self.native_min_value,
-                self.native_max_value,
+        _LOGGER.debug(
+            "Set Power write requested (debounce): value=%s effective_scale=%s raw=%s int=%s range=%s..%s",
+            value,
+            effective_scale,
+            raw_value,
+            int_value,
+            self.native_min_value,
+            self.native_max_value,
+        )
+
+        if int_value < -32768 or int_value > 32767:
+            raise HomeAssistantError(
+                f"Requested value {value} is outside the supported int16 range for register {self._address}"
             )
 
-            if int_value < -32768 or int_value > 32767:
-                raise HomeAssistantError(
-                    f"Requested value {value} is outside the supported int16 range for register {self._address}"
-                )
+        if value < self.native_min_value or value > self.native_max_value:
+            raise HomeAssistantError(
+                f"Requested value {value} is outside the safe range {self.native_min_value}..{self.native_max_value}"
+            )
 
-            if value < self.native_min_value or value > self.native_max_value:
-                raise HomeAssistantError(
-                    f"Requested value {value} is outside the safe range {self.native_min_value}..{self.native_max_value}"
-                )
+        # Cancel any previously scheduled write; this new value supersedes it.
+        if self._debounce_unsub is not None:
+            self._debounce_unsub()
+            self._debounce_unsub = None
 
+        # Store the latest requested write.
+        self._pending_write = (value, int_value)
+
+        # Update the UI immediately so the slider/box feels responsive.
+        if self._coordinator.data and self._address in self._coordinator.data:
+            self._coordinator.data[self._address]["value"] = value
+        self.async_write_ha_state()
+
+        # Schedule the actual Modbus write after the debounce window.
+        self._debounce_unsub = async_call_later(
+            self.hass, _WRITE_DEBOUNCE_SECONDS, self._async_execute_pending_write
+        )
+
+    async def _async_execute_pending_write(self, _now: Any) -> None:
+        """Perform the Modbus write for the last pending value."""
+        self._debounce_unsub = None
+        if self._pending_write is None:
+            return
+        value, int_value = self._pending_write
+        self._pending_write = None
+
+        try:
             success = await self._coordinator.hass.async_add_executor_job(
                 self._coordinator.modbus_client.write_register, self._address, int_value
             )
             if success:
                 _LOGGER.info("Set register %d to %d", self._address, int_value)
-                # Update the locally cached value immediately and let the next
-                # regular coordinator poll reconcile device state. This avoids
-                # hammering the Modbus connection with a full refresh after
-                # every rapid control change.
-                if self._coordinator.data and self._address in self._coordinator.data:
-                    self._coordinator.data[self._address]["value"] = value
-                self.async_write_ha_state()
             else:
                 detail = self._coordinator.modbus_client.last_write_error
-                if detail:
-                    raise HomeAssistantError(f"Failed to set register {self._address}: {detail}")
-                raise HomeAssistantError(f"Failed to set register {self._address}")
-        except HomeAssistantError:
-            raise
+                _LOGGER.error(
+                    "Failed to set register %d to %d: %s",
+                    self._address,
+                    int_value,
+                    detail or "unknown error",
+                )
         except Exception as err:
-            _LOGGER.exception("Error setting register value: %s", err)
-            raise HomeAssistantError(f"Error setting register {self._address}: {err}") from err
+            _LOGGER.exception("Error writing register %d: %s", self._address, err)
 
     async def async_added_to_hass(self) -> None:
         """Register with coordinator."""
@@ -375,6 +401,13 @@ class APstorageWritableNumber(APstorageEntityMixin, NumberEntity):
         )
 
         self._async_ensure_prefixed_entity_id()
+
+    async def async_will_remove_from_hass(self) -> None:
+        """Cancel any pending debounced write when the entity is removed."""
+        if self._debounce_unsub is not None:
+            self._debounce_unsub()
+            self._debounce_unsub = None
+        self._pending_write = None
 
     def _async_ensure_prefixed_entity_id(self) -> None:
         """Rename the entity once the device serial number is available."""

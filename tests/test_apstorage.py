@@ -73,7 +73,7 @@ from custom_components.apstorage import (
     APstorageModbusClient,
     DEFAULT_CONNECTION_MAX_AGE_SECONDS,
 )
-from custom_components.apstorage.const import APSTORAGE_REGISTERS
+from custom_components.apstorage.const import APSTORAGE_REGISTERS, LOGGER_NAME
 from custom_components.apstorage.entity_naming import (
     async_migrate_entity_id,
     build_prefixed_entity_id,
@@ -190,7 +190,8 @@ class TestAPstorageDecoding(unittest.TestCase):
         self.client.client.write_registers.return_value = failed_response
         self.client.client.write_register.return_value = success_response
 
-        result = self.client.write_register(40183, 250)
+        with self.assertNoLogs(LOGGER_NAME, level="WARNING"):
+            result = self.client.write_register(40183, 250)
 
         self.assertTrue(result)
         self.client.client.write_registers.assert_called_once_with(
@@ -221,6 +222,19 @@ class TestAPstorageDecoding(unittest.TestCase):
         self.assertFalse(result)
         self.assertIsNotNone(self.client.last_write_error)
         self.assertIn("register 40183", self.client.last_write_error)
+
+    def test_successful_write_defers_reads_briefly(self):
+        """Reads should pause briefly after a successful write to avoid collisions."""
+        response = MagicMock()
+        response.isError.return_value = False
+
+        self.client.client = MagicMock()
+        self.client.client.write_registers.return_value = response
+
+        result = self.client.write_register(40183, 250)
+
+        self.assertTrue(result)
+        self.assertTrue(self.client.should_defer_reads())
 
     def test_read_registers_applies_configured_address_offset(self):
         """Reads should apply register_address_offset before sending requests."""

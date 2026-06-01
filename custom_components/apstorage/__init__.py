@@ -127,6 +127,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 class APstorageModbusClient:
     """Wrapper for pymodbus TCP/RTU client."""
 
+    _READ_AFTER_WRITE_DELAY_SECONDS = 1.5
+
     def __init__(
         self,
         hass: HomeAssistant,
@@ -151,10 +153,19 @@ class APstorageModbusClient:
         self._client_lock = threading.Lock()
         self._request_lock = threading.Lock()
         self._last_connect_monotonic: float | None = None
+        self._last_successful_write_monotonic: float | None = None
 
     def _to_wire_address(self, address: int) -> int:
         """Convert logical register address to Modbus wire address."""
         return int(address) + self.register_address_offset
+
+    def should_defer_reads(self) -> bool:
+        """Return True when reads should wait briefly after a successful write."""
+        if self._last_successful_write_monotonic is None:
+            return False
+        return (
+            time.monotonic() - self._last_successful_write_monotonic
+        ) < self._READ_AFTER_WRITE_DELAY_SECONDS
 
     def _create_client(self):
         """Create a new pymodbus client instance."""
@@ -350,6 +361,7 @@ class APstorageModbusClient:
         try:
             self.last_write_error = None
             wire_address = self._to_wire_address(address)
+            attempt_errors: list[str] = []
             if not -32768 <= value <= 32767:
                 _LOGGER.error(
                     "Refusing to write out-of-range int16 value %d to register %d",
@@ -402,7 +414,8 @@ class APstorageModbusClient:
                             self.last_write_error = (
                                 f"{method} exception for register {address} (wire={wire_address}): {err}"
                             )
-                            _LOGGER.warning(self.last_write_error)
+                            attempt_errors.append(self.last_write_error)
+                            _LOGGER.debug(self.last_write_error)
                             continue
 
                         if result is None:
@@ -410,23 +423,34 @@ class APstorageModbusClient:
 
                         if not result.isError():
                             _LOGGER.debug(
-                                "Successfully wrote value %d to register %d (wire=%d) using %s",
+                                "Successfully wrote value %d to register %d (wire=%d) using %s after %d transient errors",
                                 value,
                                 address,
                                 wire_address,
                                 method,
+                                len(attempt_errors),
                             )
+                            self._last_successful_write_monotonic = time.monotonic()
                             self.last_write_error = None
                             return True
 
                         self.last_write_error = (
                             f"{method} failed for register {address} (wire={wire_address}): {result}"
                         )
-                        _LOGGER.warning(self.last_write_error)
+                        attempt_errors.append(self.last_write_error)
+                        _LOGGER.debug(self.last_write_error)
 
             if self.last_write_error is None:
                 self.last_write_error = (
                     f"Unknown Modbus write failure for register {address} (wire={wire_address})"
+                )
+            if attempt_errors:
+                _LOGGER.warning(
+                    "Write failed for register %d (wire=%d) after %d attempts; last error: %s",
+                    address,
+                    wire_address,
+                    len(attempt_errors),
+                    self.last_write_error,
                 )
             _LOGGER.error(self.last_write_error)
             return False
@@ -558,6 +582,13 @@ class APstorageCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from the device."""
         try:
+            if self.modbus_client.should_defer_reads() and getattr(self, "data", None):
+                _LOGGER.debug(
+                    "Skipping APstorage poll because a successful write occurred within the last %.1f seconds",
+                    self.modbus_client._READ_AFTER_WRITE_DELAY_SECONDS,
+                )
+                return self.data
+
             data = {}
             raw_by_address: dict[int, list[int]] = {}
 
