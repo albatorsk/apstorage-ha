@@ -146,6 +146,7 @@ class APstorageModbusClient:
         self.connection_max_age_seconds = max(0, int(connection_max_age_seconds))
         self.register_address_offset = int(register_address_offset)
         self.client = None
+        self.last_write_error: str | None = None
         self._client_lock = threading.Lock()
         self._last_connect_monotonic: float | None = None
 
@@ -340,13 +341,14 @@ class APstorageModbusClient:
     def write_register(self, address: int, value: int) -> bool:
         """Write a single holding register synchronously.
 
-        Use Modbus function 16 (write multiple registers) even for one register.
-        Some APstorage/SunSpec devices are sensitive to function 6 writes on
-        control points like Set Power and may stop responding afterwards.
+        Tries both Modbus function 16 (write multiple) and function 6 (write
+        single), as device behavior can vary by firmware.
         """
         try:
+            self.last_write_error = None
             wire_address = self._to_wire_address(address)
             if not self._ensure_connected(recycle_if_old=True):
+                self.last_write_error = "Modbus client is not connected"
                 return False
 
             if not -32768 <= value <= 32767:
@@ -355,75 +357,78 @@ class APstorageModbusClient:
                     value,
                     address,
                 )
+                self.last_write_error = (
+                    f"Refusing out-of-range int16 value {value} for register {address}"
+                )
                 return False
 
             # Modbus registers are 16-bit values on the wire. For signed int16
             # semantics, encode negatives as two's-complement before sending.
             write_value = value & 0xFFFF if value < 0 else value
 
-            writer = getattr(self.client, "write_registers", None)
-            use_multi_write = callable(writer)
-            if use_multi_write:
-                result = writer(
-                    address=wire_address,
-                    values=[write_value],
-                    device_id=self.unit,
-                )
-            else:
-                result = self.client.write_register(
+            def _attempt_write(method: str):
+                if method == "write_registers":
+                    writer = getattr(self.client, "write_registers", None)
+                    if not callable(writer):
+                        return None
+                    return writer(
+                        address=wire_address,
+                        values=[write_value],
+                        device_id=self.unit,
+                    )
+
+                return self.client.write_register(
                     address=wire_address,
                     value=write_value,
                     device_id=self.unit,
                 )
 
-            if result.isError():
-                _LOGGER.warning("Modbus error writing register %d: %s", address, result)
-                if self._sync_connect(force_reconnect=True):
-                    writer = getattr(self.client, "write_registers", None)
-                    use_multi_write = callable(writer)
-                    if use_multi_write:
-                        retry = writer(
-                            address=wire_address,
-                            values=[write_value],
-                            device_id=self.unit,
+            method_order = ["write_registers", "write_register"]
+            if not callable(getattr(self.client, "write_registers", None)):
+                method_order = ["write_register"]
+
+            for reconnect in (False, True):
+                if reconnect and not self._sync_connect(force_reconnect=True):
+                    continue
+
+                for method in method_order:
+                    try:
+                        result = _attempt_write(method)
+                    except Exception as err:  # pragma: no cover
+                        self.last_write_error = (
+                            f"{method} exception for register {address} (wire={wire_address}): {err}"
                         )
-                    else:
-                        retry = self.client.write_register(
-                            address=wire_address,
-                            value=write_value,
-                            device_id=self.unit,
+                        _LOGGER.warning(self.last_write_error)
+                        continue
+
+                    if result is None:
+                        continue
+
+                    if not result.isError():
+                        _LOGGER.debug(
+                            "Successfully wrote value %d to register %d (wire=%d) using %s",
+                            value,
+                            address,
+                            wire_address,
+                            method,
                         )
-                    if not retry.isError():
-                        _LOGGER.debug("Write register %d succeeded after reconnect", address)
+                        self.last_write_error = None
                         return True
-                    _LOGGER.warning("Modbus retry write error on register %d: %s", address, retry)
-                return False
-            _LOGGER.debug("Successfully wrote value %d to register %d", value, address)
-            return True
+
+                    self.last_write_error = (
+                        f"{method} failed for register {address} (wire={wire_address}): {result}"
+                    )
+                    _LOGGER.warning(self.last_write_error)
+
+            if self.last_write_error is None:
+                self.last_write_error = (
+                    f"Unknown Modbus write failure for register {address} (wire={wire_address})"
+                )
+            _LOGGER.error(self.last_write_error)
+            return False
         except Exception as err:  # pragma: no cover
             _LOGGER.exception("Exception writing register: %s", err)
-            try:
-                if self._sync_connect(force_reconnect=True):
-                    writer = getattr(self.client, "write_registers", None)
-                    use_multi_write = callable(writer)
-                    write_value = value & 0xFFFF if value < 0 else value
-                    if use_multi_write:
-                        retry = writer(
-                            address=wire_address,
-                            values=[write_value],
-                            device_id=self.unit,
-                        )
-                    else:
-                        retry = self.client.write_register(
-                            address=wire_address,
-                            value=write_value,
-                            device_id=self.unit,
-                        )
-                    if not retry.isError():
-                        _LOGGER.debug("Write register %d succeeded after reconnect", address)
-                        return True
-            except Exception as retry_err:  # pragma: no cover
-                _LOGGER.debug("Retry write after reconnect failed: %s", retry_err)
+            self.last_write_error = f"Exception writing register {address}: {err}"
             return False
 
     def decode_register(self, registers: list[int], value_type: str, scale: float):

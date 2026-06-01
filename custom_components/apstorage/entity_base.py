@@ -15,6 +15,19 @@ class APstorageEntityMixin:
     _coordinator: Any
     _entry: Any
 
+    @staticmethod
+    def _model_from_serial(serial_number: str | None) -> str | None:
+        """Map known serial prefixes to user-friendly APstorage model names."""
+        if not isinstance(serial_number, str):
+            return None
+        if serial_number.startswith("B050"):
+            return "ELT-12"
+        if serial_number.startswith("B040"):
+            return "ELS-11.4"
+        if serial_number.startswith("215"):
+            return "ELT-5K"
+        return None
+
     @property
     def device_info(self) -> DeviceInfo:
         """Return device information for the APstorage device."""
@@ -38,6 +51,10 @@ class APstorageEntityMixin:
                 sn = self._coordinator.data[40052].get("value")
                 if isinstance(sn, str) and sn.strip():
                     serial_number = sn
+
+            mapped_model = self._model_from_serial(serial_number)
+            if mapped_model:
+                model = mapped_model
 
             if 40044 in self._coordinator.data:
                 ver = self._coordinator.data[40044].get("value")

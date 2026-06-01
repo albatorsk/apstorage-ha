@@ -139,6 +139,12 @@ class APstorageRegisterSensor(APstorageEntityMixin, SensorEntity):
     def state(self) -> Any:
         """Return the sensor state."""
         if self._coordinator.data and self._address in self._coordinator.data:
+            if self._address == 40020:
+                serial_number = self._coordinator.data.get(40052, {}).get("value")
+                mapped_model = self._model_from_serial(serial_number)
+                if mapped_model:
+                    return mapped_model
+
             value = self._coordinator.data[self._address].get("value")
             # Format bitfield values as hex for better readability
             if self._value_type == "bitfield32" and value is not None:

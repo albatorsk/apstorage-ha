@@ -351,6 +351,9 @@ class APstorageWritableNumber(APstorageEntityMixin, NumberEntity):
                 # Request immediate refresh to update the displayed value
                 await self._coordinator.async_request_refresh()
             else:
+                detail = self._coordinator.modbus_client.last_write_error
+                if detail:
+                    raise HomeAssistantError(f"Failed to set register {self._address}: {detail}")
                 raise HomeAssistantError(f"Failed to set register {self._address}")
         except HomeAssistantError:
             raise

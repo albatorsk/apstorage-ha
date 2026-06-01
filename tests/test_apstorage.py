@@ -178,6 +178,50 @@ class TestAPstorageDecoding(unittest.TestCase):
             device_id=1,
         )
 
+    def test_write_register_falls_back_to_single_write_on_error(self):
+        """If FC16 fails, fallback to FC6 for better device compatibility."""
+        failed_response = MagicMock()
+        failed_response.isError.return_value = True
+
+        success_response = MagicMock()
+        success_response.isError.return_value = False
+
+        self.client.client = MagicMock()
+        self.client.client.write_registers.return_value = failed_response
+        self.client.client.write_register.return_value = success_response
+
+        result = self.client.write_register(40183, 250)
+
+        self.assertTrue(result)
+        self.client.client.write_registers.assert_called_once_with(
+            address=40183,
+            values=[250],
+            device_id=1,
+        )
+        self.client.client.write_register.assert_called_once_with(
+            address=40183,
+            value=250,
+            device_id=1,
+        )
+        self.assertIsNone(self.client.last_write_error)
+
+    def test_write_register_records_last_error_on_failure(self):
+        """Write failures should store a detailed error for UI surfacing."""
+        failed_response = MagicMock()
+        failed_response.isError.return_value = True
+
+        self.client.client = MagicMock()
+        self.client.client.write_registers.return_value = failed_response
+        self.client.client.write_register.return_value = failed_response
+        self.client._ensure_connected = MagicMock(return_value=True)
+        self.client._sync_connect = MagicMock(return_value=False)
+
+        result = self.client.write_register(40183, 250)
+
+        self.assertFalse(result)
+        self.assertIsNotNone(self.client.last_write_error)
+        self.assertIn("register 40183", self.client.last_write_error)
+
     def test_read_registers_applies_configured_address_offset(self):
         """Reads should apply register_address_offset before sending requests."""
         response = MagicMock()
