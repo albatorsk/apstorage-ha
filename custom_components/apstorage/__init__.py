@@ -167,22 +167,12 @@ class APstorageModbusClient:
             time.monotonic() - self._last_successful_write_monotonic
         ) < self._READ_AFTER_WRITE_DELAY_SECONDS
 
-    # Hard ceiling on how long any single Modbus TCP operation may take.
-    # Without this, a firewall that silently drops packets can stall an
-    # executor thread forever, eventually exhausting HA's thread pool and
-    # freezing the entire UI.
-    _MODBUS_SOCKET_TIMEOUT_SECONDS = 5
-
     def _create_client(self):
         """Create a new pymodbus client instance."""
         from pymodbus.client import ModbusTcpClient, ModbusSerialClient
 
         if self.connection_type == CONNECTION_TCP:
-            return ModbusTcpClient(
-                self.host,
-                port=self.port,
-                timeout=self._MODBUS_SOCKET_TIMEOUT_SECONDS,
-            )
+            return ModbusTcpClient(self.host, port=self.port)
 
         return ModbusSerialClient(
             port=self.host,
@@ -591,104 +581,89 @@ class APstorageCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from the device."""
-        # Overall guard: if this update takes longer than this many seconds,
-        # cancel it rather than letting stuck executor threads pile up.
-        _UPDATE_TIMEOUT_SECONDS = 30
         try:
-            return await asyncio.wait_for(
-                self._async_fetch_data(),
-                timeout=_UPDATE_TIMEOUT_SECONDS,
-            )
-        except asyncio.TimeoutError as err:
-            raise UpdateFailed(
-                f"APstorage data update timed out after {_UPDATE_TIMEOUT_SECONDS}s; "
-                "check device reachability"
-            ) from err
+            if self.modbus_client.should_defer_reads() and getattr(self, "data", None):
+                _LOGGER.debug(
+                    "Skipping APstorage poll because a successful write occurred within the last %.1f seconds",
+                    self.modbus_client._READ_AFTER_WRITE_DELAY_SECONDS,
+                )
+                return self.data
+
+            data = {}
+            raw_by_address: dict[int, list[int]] = {}
+
+            # Read configured registers in contiguous batches to reduce Modbus requests.
+            for batch_start, batch_end in self._build_read_batches():
+                count = batch_end - batch_start + 1
+                batch_registers = await self.hass.async_add_executor_job(
+                    self.modbus_client.read_registers, batch_start, count
+                )
+                if batch_registers is None:
+                    _LOGGER.debug(
+                        "Batch register read returned no data for start=%d end=%d count=%d",
+                        batch_start,
+                        batch_end,
+                        count,
+                    )
+                    continue
+
+                for address, (_, reg_count, _, _, _, _) in APSTORAGE_REGISTERS.items():
+                    if address < batch_start:
+                        continue
+                    reg_end = address + reg_count - 1
+                    if reg_end > batch_end:
+                        continue
+                    if address in raw_by_address:
+                        continue
+
+                    offset = address - batch_start
+                    registers = batch_registers[offset : offset + reg_count]
+                    if len(registers) == reg_count:
+                        raw_by_address[address] = registers
+
+            # Resolve scale factors from previously read register data.
+            scale_factors = {}
+            for value_reg, scale_reg in APSTORAGE_SCALE_REGISTERS.items():
+                scale_regs = raw_by_address.get(scale_reg)
+                if scale_regs is not None:
+                    # Signed 16-bit for scale factor
+                    sf = scale_regs[0]
+                    if sf > 32767:
+                        sf = sf - 65536
+                    scale_factors[value_reg] = sf
+                else:
+                    _LOGGER.debug(
+                        "Scale factor register %d could not be read for value register %d",
+                        scale_reg,
+                        value_reg,
+                    )
+
+            # Decode all configured registers from raw values.
+            for address, (name, count, value_type, scale, unit, _) in APSTORAGE_REGISTERS.items():
+                registers = raw_by_address.get(address)
+                if registers is not None:
+                    # Use dynamic scale factor if available
+                    if address in scale_factors:
+                        sf = scale_factors[address]
+                        decoded = self.modbus_client.decode_register(registers, value_type, 1)
+                        value = decoded * (10 ** sf)
+                    else:
+                        value = self.modbus_client.decode_register(registers, value_type, scale)
+                    data[address] = {
+                        "name": name,
+                        "value": value,
+                        "unit": unit,
+                        "type": value_type,
+                    }
+                else:
+                    _LOGGER.debug("Register read returned no data for %s (%d)", name, address)
+
+            if not data:
+                raise UpdateFailed(
+                    "No APstorage registers could be read; enable debug logging for custom_components.apstorage_ha to inspect Modbus failures"
+                )
+
+            return data
         except Exception as err:  # pragma: no cover
             raise UpdateFailed(err) from err
-
-    async def _async_fetch_data(self) -> dict[str, Any]:
-        """Inner fetch implementation called by _async_update_data."""
-        if self.modbus_client.should_defer_reads() and getattr(self, "data", None):
-            _LOGGER.debug(
-                "Skipping APstorage poll because a successful write occurred within the last %.1f seconds",
-                self.modbus_client._READ_AFTER_WRITE_DELAY_SECONDS,
-            )
-            return self.data
-
-        data = {}
-        raw_by_address: dict[int, list[int]] = {}
-
-        # Read configured registers in contiguous batches to reduce Modbus requests.
-        for batch_start, batch_end in self._build_read_batches():
-            count = batch_end - batch_start + 1
-            batch_registers = await self.hass.async_add_executor_job(
-                self.modbus_client.read_registers, batch_start, count
-            )
-            if batch_registers is None:
-                _LOGGER.debug(
-                    "Batch register read returned no data for start=%d end=%d count=%d",
-                    batch_start,
-                    batch_end,
-                    count,
-                )
-                continue
-
-            for address, (_, reg_count, _, _, _, _) in APSTORAGE_REGISTERS.items():
-                if address < batch_start:
-                    continue
-                reg_end = address + reg_count - 1
-                if reg_end > batch_end:
-                    continue
-                if address in raw_by_address:
-                    continue
-
-                offset = address - batch_start
-                registers = batch_registers[offset : offset + reg_count]
-                if len(registers) == reg_count:
-                    raw_by_address[address] = registers
-
-        # Resolve scale factors from previously read register data.
-        scale_factors = {}
-        for value_reg, scale_reg in APSTORAGE_SCALE_REGISTERS.items():
-            scale_regs = raw_by_address.get(scale_reg)
-            if scale_regs is not None:
-                # Signed 16-bit for scale factor
-                sf = scale_regs[0]
-                if sf > 32767:
-                    sf = sf - 65536
-                scale_factors[value_reg] = sf
-            else:
-                _LOGGER.debug(
-                    "Scale factor register %d could not be read for value register %d",
-                    scale_reg,
-                    value_reg,
-                )
-
-        # Decode all configured registers from raw values.
-        for address, (name, count, value_type, scale, unit, _) in APSTORAGE_REGISTERS.items():
-            registers = raw_by_address.get(address)
-            if registers is not None:
-                # Use dynamic scale factor if available
-                if address in scale_factors:
-                    sf = scale_factors[address]
-                    decoded = self.modbus_client.decode_register(registers, value_type, 1)
-                    value = decoded * (10 ** sf)
-                else:
-                    value = self.modbus_client.decode_register(registers, value_type, scale)
-                data[address] = {
-                    "name": name,
-                    "value": value,
-                    "unit": unit,
-                    "type": value_type,
-                }
-            else:
-                _LOGGER.debug("Register read returned no data for %s (%d)", name, address)
-
-        if not data:
-            raise UpdateFailed(
-                "No APstorage registers could be read; enable debug logging for custom_components.apstorage_ha to inspect Modbus failures"
-            )
-
-        return data
 

@@ -1,7 +1,6 @@
 """Number platform for APstorage Modbus integration (writable registers)."""
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Any, Callable
 
@@ -378,11 +377,8 @@ class APstorageWritableNumber(APstorageEntityMixin, NumberEntity):
         self._pending_write = None
 
         try:
-            success = await asyncio.wait_for(
-                self._coordinator.hass.async_add_executor_job(
-                    self._coordinator.modbus_client.write_register, self._address, int_value
-                ),
-                timeout=15.0,
+            success = await self._coordinator.hass.async_add_executor_job(
+                self._coordinator.modbus_client.write_register, self._address, int_value
             )
             if success:
                 _LOGGER.info("Set register %d to %d", self._address, int_value)
@@ -394,11 +390,6 @@ class APstorageWritableNumber(APstorageEntityMixin, NumberEntity):
                     int_value,
                     detail or "unknown error",
                 )
-        except asyncio.TimeoutError:
-            _LOGGER.error(
-                "Write to register %d timed out after 15 s; check device reachability",
-                self._address,
-            )
         except Exception as err:
             _LOGGER.exception("Error writing register %d: %s", self._address, err)
 
