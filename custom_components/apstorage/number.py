@@ -6,14 +6,12 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.components.number import (
     NumberEntity,
     NumberMode,
 )
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import EntityCategory
 
 from . import APstorageCoordinator
@@ -25,6 +23,7 @@ from .const import (
     APSTORAGE_WRITABLE_REGISTERS,
     DIAGNOSTIC_REGISTERS,
 )
+from .entity_base import APstorageEntityMixin
 from .entity_naming import async_migrate_entity_id, get_suggested_object_id
 
 _LOGGER = logging.getLogger(__name__)
@@ -71,7 +70,7 @@ async def async_setup_entry(
     async_add_entities(entities, True)
 
 
-class APstorageReadonlyNumber(NumberEntity):
+class APstorageReadonlyNumber(APstorageEntityMixin, NumberEntity):
     """Number entity for read-only APstorage registers that should be numeric entities."""
 
     def __init__(
@@ -157,51 +156,6 @@ class APstorageReadonlyNumber(NumberEntity):
         return self._coordinator.last_update_success
 
     @property
-    def device_info(self) -> DeviceInfo:
-        """Return device information."""
-        manufacturer = "APstorage"
-        model = "Battery Management System"
-        serial_number = None
-        sw_version = None
-
-        if self._coordinator.data:
-            if 40004 in self._coordinator.data:
-                mfr = self._coordinator.data[40004].get("value")
-                if mfr and mfr.strip():
-                    manufacturer = mfr
-
-            if 40020 in self._coordinator.data:
-                mdl = self._coordinator.data[40020].get("value")
-                if mdl and mdl.strip():
-                    model = mdl
-
-            if 40052 in self._coordinator.data:
-                sn = self._coordinator.data[40052].get("value")
-                if sn and sn.strip():
-                    serial_number = sn
-
-            if 40044 in self._coordinator.data:
-                ver = self._coordinator.data[40044].get("value")
-                if ver and ver.strip():
-                    sw_version = ver
-
-        device_info = DeviceInfo(
-            identifiers={(DOMAIN, self._entry.entry_id)},
-            name="APstorage Battery",
-            manufacturer=manufacturer,
-            model=model,
-            hw_version="Modbus TCP/RTU",
-            configuration_url=f"http://{self._entry.data.get(CONF_HOST)}",
-        )
-
-        if serial_number:
-            device_info["serial_number"] = serial_number
-        if sw_version:
-            device_info["sw_version"] = sw_version
-
-        return device_info
-
-    @property
     def should_poll(self) -> bool:
         """No polling needed, coordinator updates."""
         return False
@@ -237,7 +191,7 @@ class APstorageReadonlyNumber(NumberEntity):
         self._async_ensure_prefixed_entity_id()
 
 
-class APstorageWritableNumber(NumberEntity):
+class APstorageWritableNumber(APstorageEntityMixin, NumberEntity):
     """Number entity for a writable APstorage Modbus register."""
 
     def __init__(
@@ -336,54 +290,13 @@ class APstorageWritableNumber(NumberEntity):
         return True
 
     @property
-    def device_info(self) -> DeviceInfo:
-        """Return device information."""
-        # Try to get device info from coordinator data
-        manufacturer = "APstorage"
-        model = "Battery Management System"
-        serial_number = None
-        sw_version = None
-        
-        if self._coordinator.data:
-            # Manufacturer from register 40004
-            if 40004 in self._coordinator.data:
-                mfr = self._coordinator.data[40004].get("value")
-                if mfr and mfr.strip():
-                    manufacturer = mfr
-            
-            # Model from register 40020
-            if 40020 in self._coordinator.data:
-                mdl = self._coordinator.data[40020].get("value")
-                if mdl and mdl.strip():
-                    model = mdl
-            
-            # Serial Number from register 40052
-            if 40052 in self._coordinator.data:
-                sn = self._coordinator.data[40052].get("value")
-                if sn and sn.strip():
-                    serial_number = sn
-            
-            # Software Version from register 40044
-            if 40044 in self._coordinator.data:
-                ver = self._coordinator.data[40044].get("value")
-                if ver and ver.strip():
-                    sw_version = ver
-        
-        device_info = DeviceInfo(
-            identifiers={(DOMAIN, self._entry.entry_id)},
-            name="APstorage Battery",
-            manufacturer=manufacturer,
-            model=model,
-            hw_version="Modbus TCP/RTU",
-            configuration_url=f"http://{self._entry.data.get(CONF_HOST)}",
-        )
-        
-        if serial_number:
-            device_info["serial_number"] = serial_number
-        if sw_version:
-            device_info["sw_version"] = sw_version
-            
-        return device_info
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return extra attributes for writable control entities."""
+        if self._address == 40183:
+            return {
+                "sign_convention": "positive=discharge, negative=charge, zero=standby",
+            }
+        return None
 
     @property
     def should_poll(self) -> bool:

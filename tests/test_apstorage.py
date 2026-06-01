@@ -73,6 +73,7 @@ from custom_components.apstorage import (
     APstorageModbusClient,
     DEFAULT_CONNECTION_MAX_AGE_SECONDS,
 )
+from custom_components.apstorage.const import APSTORAGE_REGISTERS
 from custom_components.apstorage.entity_naming import (
     async_migrate_entity_id,
     build_prefixed_entity_id,
@@ -327,6 +328,18 @@ class TestAPstorageDecoding(unittest.TestCase):
         self.assertFalse(result_none, "Should not migrate when data is None")
         self.assertFalse(result_no_serial, "Should not migrate when serial register is missing")
         registry.async_update_entity.assert_not_called()
+
+    def test_reactive_power_registers_are_signed_int16(self):
+        """Reactive power registers must decode signed values correctly."""
+        for address in (40138, 40139, 40140):
+            value_type = APSTORAGE_REGISTERS[address][2]
+            self.assertEqual(value_type, "int16")
+
+    def test_documented_scale_factor_registers_are_present(self):
+        """Ensure documented scale-factor registers exist in the register map."""
+        for address in (40125, 40132):
+            self.assertIn(address, APSTORAGE_REGISTERS)
+            self.assertEqual(APSTORAGE_REGISTERS[address][2], "sunssf")
 
 
 if __name__ == "__main__":

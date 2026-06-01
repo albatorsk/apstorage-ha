@@ -7,7 +7,6 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
-    CONF_HOST,
     STATE_UNKNOWN,
 )
 from homeassistant.components.sensor import (
@@ -16,7 +15,6 @@ from homeassistant.components.sensor import (
     SensorDeviceClass,
 )
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import EntityCategory
 
 from . import APstorageCoordinator
@@ -29,7 +27,10 @@ from .const import (
     BATTERY_ALARM_BITS,
     PCS_ALARM_BITS,
     DIAGNOSTIC_REGISTERS,
+    TOTAL_ENERGY_REGISTERS,
+    TOTAL_INCREASING_ENERGY_REGISTERS,
 )
+from .entity_base import APstorageEntityMixin
 from .entity_naming import async_migrate_entity_id, get_suggested_object_id
 
 _LOGGER = logging.getLogger(__name__)
@@ -67,7 +68,7 @@ async def async_setup_entry(
     async_add_entities(entities, True)
 
 
-class APstorageRegisterSensor(SensorEntity):
+class APstorageRegisterSensor(APstorageEntityMixin, SensorEntity):
     """Sensor entity for a single APstorage Modbus register."""
 
     def __init__(
@@ -124,10 +125,10 @@ class APstorageRegisterSensor(SensorEntity):
     def state_class(self) -> SensorStateClass | None:
         """Return the state class for sensors that support statistics."""
         # Total increasing energy sensors
-        if self._address in (40148, 40150):  # Charge/Discharge Energy (cumulative)
+        if self._address in TOTAL_INCREASING_ENERGY_REGISTERS:
             return SensorStateClass.TOTAL_INCREASING
         # Total energy sensors (daily reset)
-        elif self._address in (40146, 40147):  # Daily Charge/Discharge Energy
+        elif self._address in TOTAL_ENERGY_REGISTERS:
             return SensorStateClass.TOTAL
         # Measurement sensors (instantaneous values)
         elif self._device_class in ("voltage", "current", "power", "temperature", "battery"):
@@ -184,56 +185,6 @@ class APstorageRegisterSensor(SensorEntity):
     def available(self) -> bool:
         """Return if entity is available."""
         return self._coordinator.last_update_success
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Return device information."""
-        # Try to get device info from coordinator data
-        manufacturer = "APstorage"
-        model = "Battery Management System"
-        serial_number = None
-        sw_version = None
-        
-        if self._coordinator.data:
-            # Manufacturer from register 40004
-            if 40004 in self._coordinator.data:
-                mfr = self._coordinator.data[40004].get("value")
-                if mfr and mfr.strip():
-                    manufacturer = mfr
-            
-            # Model from register 40020
-            if 40020 in self._coordinator.data:
-                mdl = self._coordinator.data[40020].get("value")
-                if mdl and mdl.strip():
-                    model = mdl
-            
-            # Serial Number from register 40052
-            if 40052 in self._coordinator.data:
-                sn = self._coordinator.data[40052].get("value")
-                if sn and sn.strip():
-                    serial_number = sn
-            
-            # Software Version from register 40044
-            if 40044 in self._coordinator.data:
-                ver = self._coordinator.data[40044].get("value")
-                if ver and ver.strip():
-                    sw_version = ver
-        
-        device_info = DeviceInfo(
-            identifiers={(DOMAIN, self._entry.entry_id)},
-            name="APstorage Battery",
-            manufacturer=manufacturer,
-            model=model,
-            hw_version="Modbus TCP/RTU",
-            configuration_url=f"http://{self._entry.data.get(CONF_HOST)}",
-        )
-        
-        if serial_number:
-            device_info["serial_number"] = serial_number
-        if sw_version:
-            device_info["sw_version"] = sw_version
-            
-        return device_info
 
     @property
     def should_poll(self) -> bool:

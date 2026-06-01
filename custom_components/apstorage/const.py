@@ -55,10 +55,12 @@ APSTORAGE_REGISTERS = {
     40117: ("Battery Power", 1, "int16", 1, "W", "power"),
     40123: ("WHRtg Scale Factor", 1, "sunssf", 1, None, None),
     40124: ("Max Charge/Discharge Scale Factor", 1, "sunssf", 1, None, None),
+    40125: ("Discharge Rate Scale Factor (DisChaRte_SF)", 1, "sunssf", 1, None, None),
     40126: ("SoC Scale Factor", 1, "sunssf", 1, None, None),
     40128: ("SoH Scale Factor", 1, "sunssf", 1, None, None),
     40129: ("Voltage Scale Factor", 1, "sunssf", 1, None, None),
     40131: ("Current Scale Factor", 1, "sunssf", 1, None, None),
+    40132: ("Max Current Scale Factor (AMax_SF)", 1, "sunssf", 1, None, None),
     40133: ("Power Scale Factor", 1, "sunssf", 1, None, None),
     40134: ("Battery Voltage", 1, "uint16", 0.1, "V", "voltage"),
     
@@ -68,9 +70,9 @@ APSTORAGE_REGISTERS = {
     40137: ("Active Power Phase C", 1, "int16", 1, "W", "power"),
     
     # AC Power - Reactive
-    40138: ("Reactive Power Phase A", 1, "uint16", 1, "Var", None),
-    40139: ("Reactive Power Phase B", 1, "uint16", 1, "Var", None),
-    40140: ("Reactive Power Phase C", 1, "uint16", 1, "Var", None),
+    40138: ("Reactive Power Phase A", 1, "int16", 1, "Var", None),
+    40139: ("Reactive Power Phase B", 1, "int16", 1, "Var", None),
+    40140: ("Reactive Power Phase C", 1, "int16", 1, "Var", None),
     
     # Energy Tracking
     40146: ("Daily Charge Energy", 1, "uint16", 0.01, "kWh", "energy"),
@@ -163,7 +165,7 @@ DIAGNOSTIC_REGISTERS = {
     40002, 40003, 40004, 40020, 40036, 40044, 40052, 40068, 40070, 40071,  # Model info, Manufacturer, Model, Options, Version, Serial Number
     40089,  # Heartbeat
     40096, 40100,  # Alarm bitfields
-    40123, 40124, 40126, 40128, 40129, 40131, 40133, 40152, 40158,  # Scale factors
+    40123, 40124, 40125, 40126, 40128, 40129, 40131, 40132, 40133, 40152, 40158,  # Scale factors
     40159, 40167, 40175,  # Chip versions
 }
 
@@ -210,3 +212,7 @@ APSTORAGE_SCALE_REGISTERS = {
     # Control
     40183: 40133,  # Set Power uses W_SF
 }
+
+# Energy sensor state-class groups
+TOTAL_INCREASING_ENERGY_REGISTERS = {40148, 40150}
+TOTAL_ENERGY_REGISTERS = {40146, 40147}

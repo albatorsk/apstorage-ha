@@ -66,10 +66,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         connection_max_age_seconds=connection_max_age_seconds,
     )
 
-    if not await coordinator.async_init():
-        _LOGGER.error("Failed to initialize APstorage coordinator")
-        return False
-
     # Don't block setup on initial connection; allow it to fail and retry in background.
     # This prevents Home Assistant from becoming unresponsive if the device is unreachable.
     try:
@@ -463,6 +459,8 @@ class APstorageModbusClient:
 class APstorageCoordinator(DataUpdateCoordinator):
     """Coordinator to poll APstorage device."""
 
+    _MAX_MODBUS_BATCH_READ_COUNT = 125
+
     def __init__(
         self,
         hass: HomeAssistant,
@@ -503,16 +501,71 @@ class APstorageCoordinator(DataUpdateCoordinator):
         """Shutdown the coordinator and close Modbus resources."""
         await self.modbus_client.async_disconnect()
 
+    @classmethod
+    def _build_read_batches(cls) -> list[tuple[int, int]]:
+        """Build contiguous Modbus read batches from configured register spans."""
+        batches: list[tuple[int, int]] = []
+        spans = sorted(
+            (address, address + count - 1)
+            for address, (_, count, _, _, _, _) in APSTORAGE_REGISTERS.items()
+        )
+        if not spans:
+            return batches
+
+        batch_start, batch_end = spans[0]
+        for span_start, span_end in spans[1:]:
+            proposed_end = max(batch_end, span_end)
+            proposed_count = proposed_end - batch_start + 1
+
+            if span_start <= batch_end + 1 and proposed_count <= cls._MAX_MODBUS_BATCH_READ_COUNT:
+                batch_end = proposed_end
+                continue
+
+            batches.append((batch_start, batch_end))
+            batch_start, batch_end = span_start, span_end
+
+        batches.append((batch_start, batch_end))
+        return batches
+
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from the device."""
         try:
             data = {}
-            # Read all scale factor registers first
+            raw_by_address: dict[int, list[int]] = {}
+
+            # Read configured registers in contiguous batches to reduce Modbus requests.
+            for batch_start, batch_end in self._build_read_batches():
+                count = batch_end - batch_start + 1
+                batch_registers = await self.hass.async_add_executor_job(
+                    self.modbus_client.read_registers, batch_start, count
+                )
+                if batch_registers is None:
+                    _LOGGER.debug(
+                        "Batch register read returned no data for start=%d end=%d count=%d",
+                        batch_start,
+                        batch_end,
+                        count,
+                    )
+                    continue
+
+                for address, (_, reg_count, _, _, _, _) in APSTORAGE_REGISTERS.items():
+                    if address < batch_start:
+                        continue
+                    reg_end = address + reg_count - 1
+                    if reg_end > batch_end:
+                        continue
+                    if address in raw_by_address:
+                        continue
+
+                    offset = address - batch_start
+                    registers = batch_registers[offset : offset + reg_count]
+                    if len(registers) == reg_count:
+                        raw_by_address[address] = registers
+
+            # Resolve scale factors from previously read register data.
             scale_factors = {}
             for value_reg, scale_reg in APSTORAGE_SCALE_REGISTERS.items():
-                scale_regs = await self.hass.async_add_executor_job(
-                    self.modbus_client.read_registers, scale_reg, 1
-                )
+                scale_regs = raw_by_address.get(scale_reg)
                 if scale_regs is not None:
                     # Signed 16-bit for scale factor
                     sf = scale_regs[0]
@@ -526,11 +579,9 @@ class APstorageCoordinator(DataUpdateCoordinator):
                         value_reg,
                     )
 
-            # Read all configured registers
+            # Decode all configured registers from raw values.
             for address, (name, count, value_type, scale, unit, _) in APSTORAGE_REGISTERS.items():
-                registers = await self.hass.async_add_executor_job(
-                    self.modbus_client.read_registers, address, count
-                )
+                registers = raw_by_address.get(address)
                 if registers is not None:
                     # Use dynamic scale factor if available
                     if address in scale_factors:
