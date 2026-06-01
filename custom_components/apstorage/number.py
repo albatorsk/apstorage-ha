@@ -256,7 +256,8 @@ class APstorageWritableNumber(APstorageEntityMixin, NumberEntity):
         """Return the minimum value."""
         if self._address == 40183 and self._coordinator.data:
             max_charge = self._coordinator.data.get(40074, {}).get("value")
-            if isinstance(max_charge, (int, float)):
+            # Only trust dynamic limits when they are sane positive values.
+            if isinstance(max_charge, (int, float)) and max_charge > 0:
                 return -float(max_charge)
         return self._min_value
 
@@ -265,7 +266,8 @@ class APstorageWritableNumber(APstorageEntityMixin, NumberEntity):
         """Return the maximum value."""
         if self._address == 40183 and self._coordinator.data:
             max_discharge = self._coordinator.data.get(40075, {}).get("value")
-            if isinstance(max_discharge, (int, float)):
+            # Only trust dynamic limits when they are sane positive values.
+            if isinstance(max_discharge, (int, float)) and max_discharge > 0:
                 return float(max_discharge)
         return self._max_value
 
@@ -321,6 +323,16 @@ class APstorageWritableNumber(APstorageEntityMixin, NumberEntity):
 
             int_value = int(round(raw_value))
 
+            _LOGGER.debug(
+                "Set Power write requested: value=%s effective_scale=%s raw=%s int=%s range=%s..%s",
+                value,
+                effective_scale,
+                raw_value,
+                int_value,
+                self.native_min_value,
+                self.native_max_value,
+            )
+
             if int_value < -32768 or int_value > 32767:
                 raise HomeAssistantError(
                     f"Requested value {value} is outside the supported int16 range for register {self._address}"
@@ -339,9 +351,12 @@ class APstorageWritableNumber(APstorageEntityMixin, NumberEntity):
                 # Request immediate refresh to update the displayed value
                 await self._coordinator.async_request_refresh()
             else:
-                _LOGGER.error("Failed to set register %d", self._address)
+                raise HomeAssistantError(f"Failed to set register {self._address}")
+        except HomeAssistantError:
+            raise
         except Exception as err:
             _LOGGER.exception("Error setting register value: %s", err)
+            raise HomeAssistantError(f"Error setting register {self._address}: {err}") from err
 
     async def async_added_to_hass(self) -> None:
         """Register with coordinator."""
