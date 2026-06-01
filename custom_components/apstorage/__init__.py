@@ -28,9 +28,10 @@ from .const import (
     DEFAULT_REGISTER_ADDRESS_OFFSET,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    LOGGER_NAME,
 )
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(LOGGER_NAME)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 PLATFORMS = [Platform.SENSOR, Platform.NUMBER, Platform.BINARY_SENSOR]
@@ -148,6 +149,7 @@ class APstorageModbusClient:
         self.client = None
         self.last_write_error: str | None = None
         self._client_lock = threading.Lock()
+        self._request_lock = threading.Lock()
         self._last_connect_monotonic: float | None = None
 
     def _to_wire_address(self, address: int) -> int:
@@ -271,50 +273,51 @@ class APstorageModbusClient:
         """Read holding registers synchronously."""
         try:
             wire_address = self._to_wire_address(address)
-            if not self._ensure_connected(recycle_if_old=True):
-                _LOGGER.debug(
-                    "Skipping Modbus read for %s:%s address=%d count=%d device_id=%d because client is not connected",
-                    self.host,
-                    self.port,
-                    address,
-                    count,
-                    self.unit,
-                )
-                return None
-            rr = self.client.read_holding_registers(
-                address=wire_address,
-                count=count,
-                device_id=self.unit,
-            )
-            if rr.isError():
-                _LOGGER.warning(
-                    "Modbus read failed for %s:%s address=%d count=%d device_id=%d: %s",
-                    self.host,
-                    self.port,
-                    address,
-                    count,
-                    self.unit,
-                    rr,
-                )
-                if self._sync_connect(force_reconnect=True):
-                    retry = self.client.read_holding_registers(
-                        address=wire_address,
-                        count=count,
-                        device_id=self.unit,
-                    )
-                    if not retry.isError():
-                        return retry.registers
-                    _LOGGER.warning(
-                        "Modbus retry read failed for %s:%s address=%d count=%d device_id=%d: %s",
+            with self._request_lock:
+                if not self._ensure_connected(recycle_if_old=True):
+                    _LOGGER.debug(
+                        "Skipping Modbus read for %s:%s address=%d count=%d device_id=%d because client is not connected",
                         self.host,
                         self.port,
                         address,
                         count,
                         self.unit,
-                        retry,
                     )
-                return None
-            return rr.registers
+                    return None
+                rr = self.client.read_holding_registers(
+                    address=wire_address,
+                    count=count,
+                    device_id=self.unit,
+                )
+                if rr.isError():
+                    _LOGGER.warning(
+                        "Modbus read failed for %s:%s address=%d count=%d device_id=%d: %s",
+                        self.host,
+                        self.port,
+                        address,
+                        count,
+                        self.unit,
+                        rr,
+                    )
+                    if self._sync_connect(force_reconnect=True):
+                        retry = self.client.read_holding_registers(
+                            address=wire_address,
+                            count=count,
+                            device_id=self.unit,
+                        )
+                        if not retry.isError():
+                            return retry.registers
+                        _LOGGER.warning(
+                            "Modbus retry read failed for %s:%s address=%d count=%d device_id=%d: %s",
+                            self.host,
+                            self.port,
+                            address,
+                            count,
+                            self.unit,
+                            retry,
+                        )
+                    return None
+                return rr.registers
         except Exception as err:  # pragma: no cover
             _LOGGER.exception(
                 "Exception reading Modbus registers for %s:%s address=%d count=%d device_id=%d: %s",
@@ -347,10 +350,6 @@ class APstorageModbusClient:
         try:
             self.last_write_error = None
             wire_address = self._to_wire_address(address)
-            if not self._ensure_connected(recycle_if_old=True):
-                self.last_write_error = "Modbus client is not connected"
-                return False
-
             if not -32768 <= value <= 32767:
                 _LOGGER.error(
                     "Refusing to write out-of-range int16 value %d to register %d",
@@ -387,38 +386,43 @@ class APstorageModbusClient:
             if not callable(getattr(self.client, "write_registers", None)):
                 method_order = ["write_register"]
 
-            for reconnect in (False, True):
-                if reconnect and not self._sync_connect(force_reconnect=True):
-                    continue
+            with self._request_lock:
+                if not self._ensure_connected(recycle_if_old=True):
+                    self.last_write_error = "Modbus client is not connected"
+                    return False
 
-                for method in method_order:
-                    try:
-                        result = _attempt_write(method)
-                    except Exception as err:  # pragma: no cover
+                for reconnect in (False, True):
+                    if reconnect and not self._sync_connect(force_reconnect=True):
+                        continue
+
+                    for method in method_order:
+                        try:
+                            result = _attempt_write(method)
+                        except Exception as err:  # pragma: no cover
+                            self.last_write_error = (
+                                f"{method} exception for register {address} (wire={wire_address}): {err}"
+                            )
+                            _LOGGER.warning(self.last_write_error)
+                            continue
+
+                        if result is None:
+                            continue
+
+                        if not result.isError():
+                            _LOGGER.debug(
+                                "Successfully wrote value %d to register %d (wire=%d) using %s",
+                                value,
+                                address,
+                                wire_address,
+                                method,
+                            )
+                            self.last_write_error = None
+                            return True
+
                         self.last_write_error = (
-                            f"{method} exception for register {address} (wire={wire_address}): {err}"
+                            f"{method} failed for register {address} (wire={wire_address}): {result}"
                         )
                         _LOGGER.warning(self.last_write_error)
-                        continue
-
-                    if result is None:
-                        continue
-
-                    if not result.isError():
-                        _LOGGER.debug(
-                            "Successfully wrote value %d to register %d (wire=%d) using %s",
-                            value,
-                            address,
-                            wire_address,
-                            method,
-                        )
-                        self.last_write_error = None
-                        return True
-
-                    self.last_write_error = (
-                        f"{method} failed for register {address} (wire={wire_address}): {result}"
-                    )
-                    _LOGGER.warning(self.last_write_error)
 
             if self.last_write_error is None:
                 self.last_write_error = (
@@ -625,7 +629,7 @@ class APstorageCoordinator(DataUpdateCoordinator):
 
             if not data:
                 raise UpdateFailed(
-                    "No APstorage registers could be read; enable debug logging for custom_components.apstorage to inspect Modbus failures"
+                    "No APstorage registers could be read; enable debug logging for custom_components.apstorage_ha to inspect Modbus failures"
                 )
 
             return data

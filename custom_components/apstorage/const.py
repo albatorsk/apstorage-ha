@@ -2,6 +2,7 @@
 from datetime import timedelta
 
 DOMAIN = "apstorage"
+LOGGER_NAME = "custom_components.apstorage_ha"
 DEFAULT_SCAN_INTERVAL = timedelta(seconds=60)
 DEFAULT_CONNECTION_MAX_AGE_SECONDS = 480
 DEFAULT_REGISTER_ADDRESS_OFFSET = 0

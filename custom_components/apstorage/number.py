@@ -22,11 +22,12 @@ from .const import (
     APSTORAGE_SCALE_REGISTERS,
     APSTORAGE_WRITABLE_REGISTERS,
     DIAGNOSTIC_REGISTERS,
+    LOGGER_NAME,
 )
 from .entity_base import APstorageEntityMixin
 from .entity_naming import async_migrate_entity_id, get_suggested_object_id
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(LOGGER_NAME)
 
 
 async def async_setup_entry(
@@ -348,8 +349,13 @@ class APstorageWritableNumber(APstorageEntityMixin, NumberEntity):
             )
             if success:
                 _LOGGER.info("Set register %d to %d", self._address, int_value)
-                # Request immediate refresh to update the displayed value
-                await self._coordinator.async_request_refresh()
+                # Update the locally cached value immediately and let the next
+                # regular coordinator poll reconcile device state. This avoids
+                # hammering the Modbus connection with a full refresh after
+                # every rapid control change.
+                if self._coordinator.data and self._address in self._coordinator.data:
+                    self._coordinator.data[self._address]["value"] = value
+                self.async_write_ha_state()
             else:
                 detail = self._coordinator.modbus_client.last_write_error
                 if detail:

@@ -22,9 +22,10 @@ from .const import (
     DEFAULT_CONNECTION_MAX_AGE_SECONDS,
     DEFAULT_REGISTER_ADDRESS_OFFSET,
     DEFAULT_SCAN_INTERVAL,
+    LOGGER_NAME,
 )
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(LOGGER_NAME)
 
 
 def _serial_port_options() -> list[dict[str, str]]:

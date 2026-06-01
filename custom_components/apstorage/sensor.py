@@ -27,13 +27,14 @@ from .const import (
     BATTERY_ALARM_BITS,
     PCS_ALARM_BITS,
     DIAGNOSTIC_REGISTERS,
+    LOGGER_NAME,
     TOTAL_ENERGY_REGISTERS,
     TOTAL_INCREASING_ENERGY_REGISTERS,
 )
 from .entity_base import APstorageEntityMixin
 from .entity_naming import async_migrate_entity_id, get_suggested_object_id
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(LOGGER_NAME)
 
 
 async def async_setup_entry(

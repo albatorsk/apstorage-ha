@@ -14,11 +14,11 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.entity import EntityCategory
 
 from . import APstorageCoordinator
-from .const import DOMAIN, BATTERY_ALARM_BITS, PCS_ALARM_BITS
+from .const import DOMAIN, BATTERY_ALARM_BITS, LOGGER_NAME, PCS_ALARM_BITS
 from .entity_base import APstorageEntityMixin
 from .entity_naming import async_migrate_entity_id, get_suggested_object_id
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(LOGGER_NAME)
 
 
 async def async_setup_entry(
